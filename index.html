@@ -105,7 +105,32 @@
         .tab-panel.active { display: block; }
         @media (max-width: 768px) {
             #app-wrapper { flex-direction: column; }
-            #sidebar { width: 100%; height: auto; padding: 1rem; border-r: 0; border-bottom: 1px solid var(--music-border); flex-direction: row; justify-content: space-between; align-items: center; }
+            #sidebar {
+                width: 100%;
+                height: auto;
+                padding: 1rem;
+                border-r: 0;
+                border-bottom: 1px solid var(--music-border);
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                align-items: center;
+                gap: 1rem;
+            }
+            #sidebar > .relative { /* Search input wrapper */
+                order: 99; /* Force it to the last flex item */
+                width: 100%;
+                margin-top: 0;
+            }
+            #sidebar > nav {
+                margin-top: 0;
+            }
+            #home-btn > span { /* Hide "Home" text on mobile */
+                display: none;
+            }
+            #home-btn {
+                gap: 0;
+            }
             #main-content { padding: 1.5rem; padding-bottom: calc(var(--player-height) * 2.5); }
             #player-bar { flex-direction: column; height: auto; padding: 1rem; gap: 1rem; }
             #player-bar > div { width: 100% !important; }
@@ -116,6 +141,12 @@
             #lyrics-meta-column { width: 100%; align-items: center; margin-bottom: 2rem; }
             #lyrics-container-wrapper { width: 100%; }
             #search-tabs { display: block; white-space: nowrap; overflow-x: auto; }
+        }
+        @media (max-width: 640px) {
+            .song-row > button[data-action='download-song'],
+            .song-row > span.w-10 {
+                display: none; /* Hide download button and time on small screens */
+            }
         }
     </style>
 </head>
@@ -135,7 +166,7 @@
 
             <nav class="mt-8">
                 <ul class="space-y-4">
-                    <li><a href="#" id="home-btn" class="flex items-center gap-4 text-lg font-semibold hover:text-white transition-colors text-music-text-secondary"><i class="fa-solid fa-home w-6 text-center"></i> Home</a></li>
+                    <li><a href="#" id="home-btn" class="flex items-center gap-4 text-lg font-semibold hover:text-white transition-colors text-music-text-secondary"><i class="fa-solid fa-home w-6 text-center"></i><span>Home</span></a></li>
                 </ul>
             </nav>
         </aside>
@@ -252,7 +283,7 @@
             };
 
             const state = {
-                currentSongData: null, currentLyrics: null, lastActiveLyricIndex: -1, lastSearchQuery: '', lastSearchData: null, currentPlaylist: [], debounceTimer: null, apiBase: 'https://jiosvn.vercel.app/api', isShuffleOn: false, repeatMode: 'none', searchPage: {},
+                currentSongData: null, currentLyrics: null, lastActiveLyricIndex: -1, lastSearchQuery: '', lastSearchData: null, currentPlaylist: [], debounceTimer: null, apiBase: 'https://jiosvn.vercel.app/api', isShuffleOn: false, repeatMode: 'none', searchPage: {}, songViewMode: 'list', currentSearchTab: 'songs',
             };
 
             const util = {
@@ -287,18 +318,39 @@
                 renderPaginationControls: (total, page, query, category) => { const totalPages = Math.ceil(total / 50); if (totalPages <= 1) return ''; let html = `<div class="flex justify-center items-center gap-4 mt-6">`; html += `<button data-action="change-page" data-page="${page - 1}" data-query="${query}" data-category="${category}" class="px-4 py-2 rounded-lg bg-music-bg-hover disabled:opacity-50 disabled:cursor-not-allowed" ${page === 1 ? 'disabled' : ''}>Previous</button>`; html += `<span class="font-semibold">Page ${page} of ${totalPages}</span>`; html += `<button data-action="change-page" data-page="${page + 1}" data-query="${query}" data-category="${category}" class="px-4 py-2 rounded-lg bg-music-bg-hover disabled:opacity-50 disabled:cursor-not-allowed" ${page >= totalPages ? 'disabled' : ''}>Next</button>`; html += `</div>`; return html; },
                 renderSearchResults: (allData, query) => {
                     state.lastSearchData = allData; state.lastSearchQuery = query; const { songData, albumData, artistData } = allData;
-                    const tabs = [ { id: 'songs', title: 'Songs', data: songData, renderer: ui.renderSongList }, { id: 'albums', title: 'Albums', data: albumData, renderer: ui.renderGrid }, { id: 'artists', title: 'Artists', data: artistData, renderer: ui.renderGrid }, ];
-                    let html = `<div class="w-full"><div id="search-tabs" class="border-b border-music-border mb-6">${tabs.map((tab, index) => `<button class="tab-button font-semibold text-music-text-secondary ${index === 0 ? 'active' : ''}" data-tab="${tab.id}">${tab.title}</button>`).join('')}</div><div id="search-panels">${tabs.map((tab, index) => `<div id="panel-${tab.id}" class="tab-panel ${index === 0 ? 'active' : ''}">${ui.renderPaginatedSection(tab.id, tab.data, tab.renderer, query, state.searchPage[tab.id] || 1)}</div>`).join('')}</div></div>`;
-                    ui.renderContent(html);
+                    const tabs = [ { id: 'songs', title: 'Songs', data: songData, renderer: state.songViewMode === 'list' ? ui.renderSongList : ui.renderSongGrid }, { id: 'albums', title: 'Albums', data: albumData, renderer: ui.renderGrid }, { id: 'artists', title: 'Artists', data: artistData, renderer: ui.renderGrid }, ];
+                    const activeTabId = state.currentSearchTab;
+
+                    const tabButtonsHtml = tabs.map(tab => `<button class="tab-button font-semibold text-music-text-secondary ${tab.id === activeTabId ? 'active' : ''}" data-tab="${tab.id}">${tab.title}</button>`).join('');
+                    const viewToggleHtml = `
+                        <div id="song-view-toggle-container" class="${activeTabId === 'songs' ? 'flex' : 'hidden'} items-center">
+                            <button data-view="list" title="List View" class="p-2 rounded text-xl ${state.songViewMode === 'list' ? 'text-white' : 'text-music-text-secondary'} hover:text-white"><i class="fas fa-list"></i></button>
+                            <button data-view="grid" title="Grid View" class="p-2 rounded text-xl ${state.songViewMode === 'grid' ? 'text-white' : 'text-music-text-secondary'} hover:text-white"><i class="fas fa-grip"></i></button>
+                        </div>`;
+                    
+                    const headerHtml = `<div class="flex justify-between items-center border-b border-music-border mb-6">
+                                            <div id="search-tabs" class="flex items-center">${tabButtonsHtml}</div>
+                                            ${viewToggleHtml}
+                                        </div>`;
+
+                    const panelsHtml = tabs.map(tab => `<div id="panel-${tab.id}" class="tab-panel ${tab.id === activeTabId ? 'active' : ''}">${ui.renderPaginatedSection(tab.id, tab.data, tab.renderer, query, state.searchPage[tab.id] || 1)}</div>`).join('');
+                    
+                    const finalHtml = `<div class="w-full">${headerHtml}<div id="search-panels">${panelsHtml}</div></div>`;
+                    ui.renderContent(finalHtml);
                 },
                 renderGrid: (items) => {
                     if (!items) return ''; let html = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-x-6 gap-y-8">`;
                     items.forEach(item => { const artistLinks = util.renderArtistLinks(util.getArtistNames(item)); const subtext = item.type === 'artist' ? 'Artist' : (artistLinks || item.year || ''); const imageClass = item.type === 'artist' ? 'rounded-full' : 'rounded-lg'; html += `<div data-type="${item.type}" data-id="${item.id}" class="p-3 rounded-xl hover:bg-music-bg-hover transition-colors cursor-pointer group"><img src="${util.getBestImageUrl(item.image)}" alt="${util.getItemName(item)}" class="w-full ${imageClass} mb-4 aspect-square object-cover bg-music-bg-base group-hover:scale-105 transition-transform duration-300 shadow-lg" crossorigin="anonymous"><h3 class="font-semibold truncate text-sm">${util.getItemName(item)}</h3><div class="text-sm text-music-text-secondary truncate">${subtext}</div></div>`; });
                     return html + `</div>`;
                 },
+                renderSongGrid: (songs) => {
+                    if (!songs || songs.length === 0) return ''; let html = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-x-6 gap-y-8">`;
+                    songs.forEach(song => { const artistLinks = util.renderArtistLinks(util.getArtistNames(song)); html += `<div data-type="song" data-id="${song.id}" class="p-3 rounded-xl hover:bg-music-bg-hover transition-colors cursor-pointer group"><div class="relative"><img src="${util.getBestImageUrl(song.image)}" alt="${util.getItemName(song)}" class="w-full rounded-lg mb-4 aspect-square object-cover bg-music-bg-base group-hover:scale-105 transition-transform duration-300 shadow-lg" crossorigin="anonymous"><div class="play-overlay"><i class="fas fa-play"></i></div></div><h3 class="font-semibold truncate text-sm">${util.getItemName(song)}</h3><div class="text-sm text-music-text-secondary truncate">${artistLinks}</div></div>`; });
+                    return html + `</div>`;
+                },
                 renderSongList: (songs, isNumbered = false) => {
                     if (!songs || songs.length === 0) return ''; let html = `<div class="space-y-1">`;
-                    songs.forEach((song, index) => { const durationText = util.formatTime(song.duration); const artistLinks = util.renderArtistLinks(util.getArtistNames(song)); const songJson = JSON.stringify(song).replace(/'/g, "&apos;"); html += `<div class="song-row p-2 rounded-lg transition-colors flex items-center gap-4 group border-b border-transparent hover:border-music-border/20"><div data-type="song" data-id="${song.id}" class="relative flex-shrink-0 w-12 h-12 cursor-pointer"><span class="absolute inset-0 flex items-center justify-center text-music-text-secondary group-hover:hidden">${isNumbered ? (index + 1) : '<i class="fa-solid fa-music"></i>'}</span><div class="absolute inset-0 hidden group-hover:flex items-center justify-center text-white"><i class="fas fa-play fa-lg"></i></div></div><img data-type="song" data-id="${song.id}" src="${util.getBestImageUrl(song.image, '150x150')}" alt="${util.getItemName(song)}" class="w-12 h-12 rounded-md object-cover bg-music-bg-base shadow-md cursor-pointer" crossorigin="anonymous"><div class="flex-1 min-w-0"><h3 data-type="song" data-id="${song.id}" class="font-semibold truncate text-music-text-primary cursor-pointer">${util.getItemName(song)}</h3><div class="text-music-text-secondary text-sm truncate">${artistLinks}</div></div><button data-action="download-song" data-song-json='${songJson}' class="text-music-text-secondary hover:text-white px-3 transition-colors" title="Download Song"><i class="fas fa-download"></i></button><span class="text-music-text-secondary text-sm w-10 text-right flex-shrink-0 pr-4">${durationText}</span></div>`; });
+                    songs.forEach((song, index) => { const durationText = util.formatTime(song.duration); const artistLinks = util.renderArtistLinks(util.getArtistNames(song)); const songJson = JSON.stringify(song).replace(/'/g, "&apos;"); html += `<div class="song-row p-2 rounded-lg transition-colors flex items-center gap-4 group border-b border-transparent hover:border-music-border/20"><div data-type="song" data-id="${song.id}" class="relative flex-shrink-0 w-12 h-12 cursor-pointer"><span class="absolute inset-0 flex items-center justify-center text-music-text-secondary group-hover:hidden">${isNumbered ? (index + 1) : ''}</span><div class="absolute inset-0 hidden group-hover:flex items-center justify-center text-white"><i class="fas fa-play fa-lg"></i></div></div><img data-type="song" data-id="${song.id}" src="${util.getBestImageUrl(song.image, '150x150')}" alt="${util.getItemName(song)}" class="w-12 h-12 rounded-md object-cover bg-music-bg-base shadow-md cursor-pointer" crossorigin="anonymous"><div class="flex-1 min-w-0"><h3 data-type="song" data-id="${song.id}" class="font-semibold truncate text-music-text-primary cursor-pointer">${util.getItemName(song)}</h3><div class="text-music-text-secondary text-sm truncate">${artistLinks}</div></div><button data-action="download-song" data-song-json='${songJson}' class="text-music-text-secondary hover:text-white px-3 transition-colors" title="Download Song"><i class="fas fa-download"></i></button><span class="text-music-text-secondary text-sm w-10 text-right flex-shrink-0 pr-4">${durationText}</span></div>`; });
                     return html + `</div>`;
                 },
                 renderAlbumPage: (album) => { let html = navigation.getBackButton(); html += `<div class="fade-in-up"><div class="flex flex-col md:flex-row gap-8 items-center md:items-start mb-10"><img src="${util.getBestImageUrl(album.data.image)}" alt="${album.data.name}" class="w-48 h-48 md:w-56 md:h-56 rounded-xl shadow-2xl object-cover flex-shrink-0" crossorigin="anonymous"><div class="mt-4 md:mt-2 text-center md:text-left"><p class="text-sm font-semibold uppercase tracking-wider text-music-text-secondary">Album</p><h2 class="text-4xl lg:text-6xl font-extrabold tracking-tight">${album.data.name}</h2><div class="text-xl text-music-text-primary/90 font-semibold mt-3">${util.renderArtistLinks(util.getArtistNames(album.data))}</div><p class="text-md text-music-text-secondary mt-1">${album.data.year} • ${album.data.songCount} Songs</p></div></div>${ui.renderSongList(album.data.songs, true)}</div>`; ui.renderContent(html); },
@@ -315,7 +367,9 @@
                     if (type === 'search') {
                          state.searchPage = { songs: 1, albums: 1, artists: 1 };
                         const [songResponse, albumResponse, artistResponse] = await Promise.all([ api.searchSongs(id, 1), api.searchAlbums(id, 1), api.searchArtists(id, 1), ]);
-                        ui.renderSearchResults({ songData: songResponse?.data, albumData: albumResponse?.data, artistData: artistResponse?.data, }, id);
+                        const allData = { songData: songResponse?.data, albumData: albumResponse?.data, artistData: artistResponse?.data };
+                        state.currentSearchTab = allData.songData?.results?.length ? 'songs' : allData.albumData?.results?.length ? 'albums' : 'artists';
+                        ui.renderSearchResults(allData, id);
                     } else if (type === 'album') { data = await api.getAlbum(id); if (data?.data) { state.currentPlaylist = data.data.songs.sort((a,b) => (a.track || 0) - (b.track || 0)); ui.renderAlbumPage(data); }
                     } else if (type === 'artist') { data = await api.getArtist(id); if (data?.data) { state.currentPlaylist = data.data.topSongs || []; ui.renderArtistPage(data); } }
                 }
@@ -323,18 +377,13 @@
             
             const player = {
                 playSong: async (songId) => { try { const songResult = await api.getSong(songId); if (!songResult || !songResult.data || songResult.data.length === 0) throw new Error('Could not fetch song details.'); const songData = songResult.data[0]; state.currentSongData = songData; const audioUrl = util.getBestAudioUrl(songData.downloadUrl); if (!audioUrl) { alert("Sorry, no streamable audio found for this song."); return; } dom.audioPlayer.src = audioUrl; dom.audioPlayer.play(); player.updatePlayerUI(songData); api.getSuggestions(songId).then(ui.renderSuggestions); } catch (error) { console.error("Failed to play song:", error); alert("Error playing song. Check the console for details."); } },
-                
                 downloadSong: async (song) => {
                     const button = document.querySelector(`button[data-song-json*='"id":"${song.id}"'] i`);
                     if (!button) return;
 
                     let ffmpeg; 
                     try {
-                        // FIX: Initialize ffmpeg without corePath for the older version
-                        ffmpeg = createFFmpeg({
-                            log: true,
-                        });
-
+                        ffmpeg = createFFmpeg({ log: true });
                         button.className = 'fas fa-spinner fa-spin';
                         const title = util.getItemName(song);
                         const artists = util.getArtistNames(song).map(a => a.name).join('; ');
@@ -343,19 +392,12 @@
                         const genre = song.language ? song.language.charAt(0).toUpperCase() + song.language.slice(1) : '';
                         const copyright = song.copyright || '';
                         const composers = song.artists.all.filter(a => a.role === 'music' || a.role === 'lyricist').map(a => a.name).filter((v, i, s) => s.indexOf(v) === i).join('; ');
-
                         await ffmpeg.load();
-                        
                         const corsProxy = 'https://my-proxy.junkuseless191.workers.dev/';
                         const audioUrl = util.getBestAudioUrl(song.downloadUrl);
                         const imageUrl = util.getBestImageUrl(song.image, '500x500');
                         if (!audioUrl) throw new Error("No high-quality audio URL found.");
-
-                        const [audioData, imageData] = await Promise.all([
-                            fetchFile(corsProxy + audioUrl).catch((e) => { console.error(e); throw new Error("Failed to download audio file.") }),
-                            fetchFile(corsProxy + imageUrl).catch(() => null)
-                        ]);
-
+                        const [audioData, imageData] = await Promise.all([ fetchFile(corsProxy + audioUrl).catch((e) => { console.error(e); throw new Error("Failed to download audio file.") }), fetchFile(corsProxy + imageUrl).catch(() => null) ]);
                         let metadataText = ';FFMETADATA1\n';
                         metadataText += `title=${title}\n`;
                         metadataText += `artist=${artists}\n`;
@@ -364,47 +406,24 @@
                         if (genre) metadataText += `genre=${genre}\n`;
                         if (composers) metadataText += `composer=${composers}\n`;
                         if (copyright) metadataText += `copyright=${copyright}\n`;
-
                         const encoder = new TextEncoder();
                         ffmpeg.FS('writeFile', 'input.m4a', audioData);
                         ffmpeg.FS('writeFile', 'metadata.txt', encoder.encode(metadataText));
-                        if (imageData) {
-                            ffmpeg.FS('writeFile', 'cover.jpg', imageData);
-                        }
-
+                        if (imageData) { ffmpeg.FS('writeFile', 'cover.jpg', imageData); }
                         const audioWithMetaFile = 'tagged_audio.m4a';
                         const finalOutputFile = 'output.m4a';
-
                         await ffmpeg.run('-i', 'input.m4a', '-i', 'metadata.txt', '-map_metadata', '1', '-c', 'copy', audioWithMetaFile);
-                        
-                        if (imageData) {
-                            await ffmpeg.run('-i', audioWithMetaFile, '-i', 'cover.jpg', '-map', '0', '-map', '1', '-c', 'copy', '-disposition:v:0', 'attached_pic', finalOutputFile);
-                        } else {
-                            ffmpeg.FS('rename', audioWithMetaFile, finalOutputFile);
-                        }
-
+                        if (imageData) { await ffmpeg.run('-i', audioWithMetaFile, '-i', 'cover.jpg', '-map', '0', '-map', '1', '-c', 'copy', '-disposition:v:0', 'attached_pic', finalOutputFile); } else { ffmpeg.FS('rename', audioWithMetaFile, finalOutputFile); }
                         const data = ffmpeg.FS('readFile', finalOutputFile);
                         const taggedSongBlob = new Blob([data.buffer], { type: 'audio/mp4' });
                         const link = document.createElement('a');
                         link.href = URL.createObjectURL(taggedSongBlob);
-                        
                         const artistString = util.getArtistNames(song).map(a => a.name).join(', ');
                         link.download = util.cleanFileName(`${artistString} - ${title}.m4a`);
-                        
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(link.href);
-
-                    } catch (error) {
-                        console.error('Download failed:', error);
-                        alert(`Download failed: ${error.message}`);
-                    } finally {
-                        if (button) button.className = 'fas fa-download';
-                        // The older version of ffmpeg doesn't have terminate() or isLoaded()
-                    }
+                        document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href);
+                    } catch (error) { console.error('Download failed:', error); alert(`Download failed: ${error.message}`);
+                    } finally { if (button) button.className = 'fas fa-download'; }
                 },
-                
                 playPrevSong: () => { if (state.currentPlaylist.length < 2 || !state.currentSongData) return; const currentIndex = state.currentPlaylist.findIndex(song => song.id === state.currentSongData.id); if (currentIndex === -1) { if (state.currentPlaylist.length > 0) player.playSong(state.currentPlaylist[0].id); return; } const prevIndex = (currentIndex - 1 + state.currentPlaylist.length) % state.currentPlaylist.length; player.playSong(state.currentPlaylist[prevIndex].id); },
                 playNextSong: () => { if (!state.currentSongData || state.currentPlaylist.length < 1) return; let nextIndex; const currentIndex = state.currentPlaylist.findIndex(song => song.id === state.currentSongData.id); if (state.isShuffleOn) { do { nextIndex = Math.floor(Math.random() * state.currentPlaylist.length); } while (state.currentPlaylist.length > 1 && nextIndex === currentIndex); } else { if (currentIndex === -1 || currentIndex === state.currentPlaylist.length - 1) { if (state.repeatMode === 'all') nextIndex = 0; else return; } else { nextIndex = currentIndex + 1; } } if (state.currentPlaylist[nextIndex]) { player.playSong(state.currentPlaylist[nextIndex].id); } },
                 handleSongEnd: () => { if (state.repeatMode === 'one' && state.currentSongData) { player.playSong(state.currentSongData.id); } else { player.playNextSong(); } },
@@ -417,10 +436,36 @@
             
             function init() {
                 dom.homeBtn.addEventListener('click', (e) => { e.preventDefault(); navigation.goHome(); });
+                const homeBtnMobile = document.getElementById('home-btn-mobile');
+                if(homeBtnMobile) homeBtnMobile.addEventListener('click', (e) => { e.preventDefault(); navigation.goHome(); });
+
                 dom.mainContent.addEventListener('click', async (e) => {
                     const target = e.target;
-                    const tabButton = target.closest('.tab-button'); if(tabButton) { e.preventDefault(); document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active')); tabButton.classList.add('active'); document.getElementById(`panel-${tabButton.dataset.tab}`).classList.add('active'); return; }
-                    const pageBtn = target.closest('[data-action="change-page"]'); if (pageBtn) { e.preventDefault(); const { query, page, category } = pageBtn.dataset; state.searchPage[category] = parseInt(page); let apiCall; switch (category) { case 'songs': apiCall = api.searchSongs(query, page); break; case 'albums': apiCall = api.searchAlbums(query, page); break; case 'artists': apiCall = api.searchArtists(query, page); break; } const newData = await apiCall; const panel = document.getElementById(`panel-${category}`); if(panel && newData?.data) { panel.innerHTML = ui.renderPaginatedSection(category, newData.data, category === 'songs' ? ui.renderSongList : ui.renderGrid, query, parseInt(page)); } return; }
+                    const tabButton = target.closest('.tab-button');
+                    if(tabButton) {
+                        e.preventDefault();
+                        const tabId = tabButton.dataset.tab;
+                        state.currentSearchTab = tabId;
+                        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                        document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+                        tabButton.classList.add('active');
+                        document.getElementById(`panel-${tabId}`).classList.add('active');
+                        
+                        const songViewToggle = document.getElementById('song-view-toggle-container');
+                        if (songViewToggle) songViewToggle.classList.toggle('hidden', tabId !== 'songs');
+                        return;
+                    }
+                    const viewToggleBtn = target.closest('[data-view]');
+                    if (viewToggleBtn) {
+                        e.preventDefault();
+                        const newView = viewToggleBtn.dataset.view;
+                        if (state.songViewMode === newView) return;
+                        state.songViewMode = newView;
+                        ui.renderSearchResults(state.lastSearchData, state.lastSearchQuery);
+                        return;
+                    }
+
+                    const pageBtn = target.closest('[data-action="change-page"]'); if (pageBtn) { e.preventDefault(); const { query, page, category } = pageBtn.dataset; state.searchPage[category] = parseInt(page); let apiCall; switch (category) { case 'songs': apiCall = api.searchSongs(query, page); break; case 'albums': apiCall = api.searchAlbums(query, page); break; case 'artists': apiCall = api.searchArtists(query, page); break; } const newData = await apiCall; const panel = document.getElementById(`panel-${category}`); if(panel && newData?.data) { const renderer = category === 'songs' ? (state.songViewMode === 'list' ? ui.renderSongList : ui.renderSongGrid) : ui.renderGrid; panel.innerHTML = ui.renderPaginatedSection(category, newData.data, renderer, query, parseInt(page)); } return; }
                     const backBtn = target.closest('[data-action="go-back-to-search"]'); if (backBtn) { e.preventDefault(); navigation.goBackToSearch(); return; }
                     const downloadBtn = target.closest('[data-action="download-song"]'); if(downloadBtn) { e.preventDefault(); try { const songObject = JSON.parse(downloadBtn.dataset.songJson); player.downloadSong(songObject); } catch (err) { console.error("Failed to parse song JSON for download", err); alert("Could not download song due to a data error."); } return; }
                     const item = target.closest('[data-type][data-id]'); if (item) { e.preventDefault(); const { type, id } = item.dataset; if (!id || id === 'null') return; if (type === 'song') { player.playSong(id); } else { navigation.view(type, id); } }
