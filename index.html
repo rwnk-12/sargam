@@ -10,7 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- Using your required FFMPEG version. The fix is in the JavaScript. -->
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.9.7/dist/ffmpeg.min.js"></script>
 
     <script>
@@ -36,7 +35,7 @@
         }
     </script>
     <style>
-        /* CSS is unchanged from the version with layout fixes */
+        /* CSS is unchanged */
         :root {
             --player-height: 90px;
             --bg-primary: #101010;
@@ -120,7 +119,7 @@
     </style>
 </head>
 <body class="text-music-text-primary">
-    <!-- Body is unchanged -->
+    <!-- Body and UI structure is unchanged -->
     <div id="app-wrapper" class="flex h-screen">
         <aside id="sidebar" class="w-64 bg-black flex-shrink-0 p-8 flex flex-col border-r border-music-border/50 z-20">
             <div class="flex items-center gap-3 text-music-accent">
@@ -203,7 +202,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const { createFFmpeg, fetchFile } = FFmpeg;
 
-            // DOM elements, state, and other helpers from previous correct version
+            // All other code (DOM, state, util, api, ui, navigation) is the same as the previous correct version.
             const dom = { mainContent: document.getElementById('main-content'), contentContainer: document.getElementById('content-container'), suggestionsContainer: document.getElementById('suggestions-container'), searchInput: document.getElementById('search-input'), homeBtn: document.getElementById('home-btn'), audioPlayer: document.getElementById('audio-player'), playerArt: document.getElementById('player-art'), playerTitle: document.getElementById('player-title'), playerArtist: document.getElementById('player-artist'), playPauseButton: document.getElementById('play-pause-button'), playPauseIcon: document.getElementById('play-pause-icon'), progressBar: document.getElementById('progress-bar'), currentTimeEl: document.getElementById('current-time'), totalTimeEl: document.getElementById('total-time'), lyricsBtn: document.getElementById('lyrics-btn'), lyricsView: document.getElementById('lyrics-view'), lyricsViewCloseBtn: document.getElementById('lyrics-view-close-btn'), lyricsBgImage: document.getElementById('lyrics-bg-image'), lyricsContainer: document.getElementById('lyrics-container'), lyricsViewArt: document.getElementById('lyrics-view-art'), lyricsViewTitle: document.getElementById('lyrics-view-title'), lyricsViewArtist: document.getElementById('lyrics-view-artist'), lyricsViewMeta: document.getElementById('lyrics-view-meta'), bodyEl: document.body, volumeControlWrapper: document.getElementById('volume-control-wrapper'), volumeBar: document.getElementById('volume-bar'), volumeLevel: document.getElementById('volume-level'), volumeIcon: document.getElementById('volume-icon'), prevButton: document.getElementById('prev-button'), nextButton: document.getElementById('next-button'), shuffleBtn: document.getElementById('shuffle-btn'), repeatBtn: document.getElementById('repeat-btn'), repeatIcon: document.getElementById('repeat-icon'), pitchBtn: document.getElementById('pitch-btn'), pitchSlider: document.getElementById('pitch-slider'), pitchValue: document.getElementById('pitch-value'), pitchResetBtn: document.getElementById('pitch-reset-btn'), };
             const state = { currentSongData: null, currentLyrics: null, lastActiveLyricIndex: -1, lastSearchQuery: '', lastSearchData: null, currentPlaylist: [], debounceTimer: null, apiBase: 'https://jiosvn.vercel.app/api', isShuffleOn: false, repeatMode: 'none', searchPage: {}, songViewMode: 'list' };
             const util = { getBestImageUrl: (images, quality = '500x500') => { const placeholder = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; if (!images || images.length === 0) return placeholder; const targetQuality = images.find(img => img.quality === quality); let url = targetQuality ? targetQuality.url : images[0].url; url = url.replace('http:', 'https:'); if (url.includes('artist-default')) return placeholder; return url; }, getBestAudioUrl: (urls) => { if (!urls || urls.length === 0) return null; const highQuality = urls.find(url => url.quality === '320kbps'); return (highQuality ? highQuality.url : urls[0].url).replace('http:', 'https:'); }, formatTime: (seconds) => { const totalSeconds = Math.floor(seconds); if (isNaN(totalSeconds) || totalSeconds < 1) return ''; const minutes = Math.floor(totalSeconds / 60); const secs = totalSeconds % 60; return `${minutes}:${secs < 10 ? '0' : ''}${secs}`; }, formatNumber: (num) => { if (num === null || num === undefined) return 'N/A'; return new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(num); }, getArtistNames: (item) => { if (item?.artists?.primary && Array.isArray(item.artists.primary) && item.artists.primary.length > 0) { return item.artists.primary; } if (item?.primaryArtists) { if (typeof item.primaryArtists === 'string') return [{ name: item.primaryArtists, id: null }]; if (Array.isArray(item.primaryArtists)) return item.primaryArtists; } if (item?.more_info?.artistMap?.primary_artists) { return item.more_info.artistMap.primary_artists; } return []; }, renderArtistLinks: (artists) => { if (!artists || artists.length === 0) return '<span>Unknown Artist</span>'; return artists.map(artist => `<a href="#" data-type="artist" data-id="${artist.id}" class="hover:underline">${artist.name}</a>`).join(', '); }, getItemName: (item) => { return item?.name || item?.title || 'Untitled'; }, cleanFileName: (filename) => { return filename.replace(/[<>:"/\\|?*]/g, '-'); } };
@@ -222,7 +221,11 @@
                     try {
                         button.className = 'fas fa-spinner fa-spin';
 
-                        // THE GUARANTEED FIX: Explicitly load the single-threaded core
+                        // =========================================================================
+                        // THE DEFINITIVE FIX (COMBINED)
+                        // =========================================================================
+                        // FIX #1: Force single-threaded core to avoid SharedArrayBuffer error.
+                        // This prevents the library from trying to load the .wasm and .worker.js files.
                         ffmpeg = createFFmpeg({
                             log: true,
                             corePath: 'https://unpkg.com/@ffmpeg/core@0.8.5/dist/ffmpeg-core.js',
@@ -230,27 +233,31 @@
 
                         await ffmpeg.load();
                         
-                        const title = util.getItemName(song);
-                        const artists = util.getArtistNames(song).map(a => a.name).join('; ');
-                        const album = song.album.name || 'Unknown Album';
-                        
+                        // FIX #2: Use a reliable CORS proxy for ALL external media fetches.
+                        const corsProxy = 'https://cors.proxy.is/'; 
                         const audioUrl = util.getBestAudioUrl(song.downloadUrl);
                         const imageUrl = util.getBestImageUrl(song.image, '500x500');
                         if (!audioUrl) throw new Error("No high-quality audio URL found.");
                         
+                        // The fetchFile utility from FFMPEG handles the request and returns a Uint8Array
                         const [audioData, imageData] = await Promise.all([
-                            fetch(audioUrl).then(res => res.arrayBuffer()),
-                            fetch(imageUrl).then(res => res.arrayBuffer()).catch(() => null)
+                            fetchFile(corsProxy + audioUrl),
+                            fetchFile(corsProxy + imageUrl).catch(() => null) // Allow image fetch to fail gracefully
                         ]);
+                        // =========================================================================
 
-                        ffmpeg.FS('writeFile', 'input.m4a', new Uint8Array(audioData));
+
+                        ffmpeg.FS('writeFile', 'input.m4a', audioData);
                         if (imageData) {
-                            ffmpeg.FS('writeFile', 'cover.jpg', new Uint8Array(imageData));
+                            ffmpeg.FS('writeFile', 'cover.jpg', imageData);
                         }
-
+                        
+                        const title = util.getItemName(song);
+                        const artists = util.getArtistNames(song).map(a => a.name).join('; ');
+                        const album = song.album.name || 'Unknown Album';
                         const finalOutputFile = 'output.m4a';
                         
-                        // Build the ffmpeg command array
+                        // Build the ffmpeg command array for better readability and safety
                         const command = ['-i', 'input.m4a'];
                         if (imageData) {
                             command.push('-i', 'cover.jpg', '-map', '0:a', '-map', '1:v');
@@ -262,7 +269,7 @@
                             '-metadata', `album=${album}`
                         );
                         if (imageData) {
-                            command.push('-disposition:v', 'attached_pic');
+                            command.push('-disposition:v:0', 'attached_pic');
                         }
                         command.push(finalOutputFile);
                         
@@ -289,6 +296,7 @@
                     }
                 },
                 
+                // All other player and init functions remain the same as the previous version
                 playPrevSong: () => { if (state.currentPlaylist.length < 2 || !state.currentSongData) return; const currentIndex = state.currentPlaylist.findIndex(song => song.id === state.currentSongData.id); if (currentIndex === -1) { if (state.currentPlaylist.length > 0) player.playSong(state.currentPlaylist[0].id); return; } const prevIndex = (currentIndex - 1 + state.currentPlaylist.length) % state.currentPlaylist.length; player.playSong(state.currentPlaylist[prevIndex].id); },
                 playNextSong: () => { if (!state.currentSongData || state.currentPlaylist.length < 1) return; let nextIndex; const currentIndex = state.currentPlaylist.findIndex(song => song.id === state.currentSongData.id); if (state.isShuffleOn) { do { nextIndex = Math.floor(Math.random() * state.currentPlaylist.length); } while (state.currentPlaylist.length > 1 && nextIndex === currentIndex); } else { if (currentIndex === -1 || currentIndex === state.currentPlaylist.length - 1) { if (state.repeatMode === 'all') nextIndex = 0; else return; } else { nextIndex = currentIndex + 1; } } if (state.currentPlaylist[nextIndex]) { player.playSong(state.currentPlaylist[nextIndex].id); } },
                 handleSongEnd: () => { if (state.repeatMode === 'one' && state.currentSongData) { player.playSong(state.currentSongData.id); } else { player.playNextSong(); } },
