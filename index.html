@@ -218,11 +218,10 @@
                     try {
                         button.className = 'fas fa-spinner fa-spin';
 
-                        // CORRECTED: Use the core version compatible with the ffmpeg.wasm library.
-                        // @ffmpeg/ffmpeg@0.9.7 pairs with @ffmpeg/core@0.10.0.
+                        // CORRECTED: With server headers now in place, we remove all client-side
+                        // workarounds and let ffmpeg.wasm initialize in its default, high-performance mode.
                         ffmpeg = createFFmpeg({
-                            log: true,
-                            corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
+                            log: true
                         });
 
                         await ffmpeg.load();
