@@ -1,18 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Cross-Origin headers are NOT needed for single-threaded mode and have been removed. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- FIX: Use the older, single-threaded version of FFmpeg to avoid SharedArrayBuffer issues. -->
     <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.9.7/dist/ffmpeg.min.js"></script>
 
     <script>
@@ -23,15 +20,16 @@
                         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif']
                     },
                     colors: {
-                        'music-bg-base': '#101010',
-                        'music-bg-elevated': '#181818',
-                        'music-bg-hover': '#242424',
-                        'music-bg-tertiary': '#2a2a2a',
-                        'music-border': '#303030',
-                        'music-text-primary': '#ffffff',
-                        'music-text-secondary': '#b3b3b3',
-                        'music-accent': '#e60023',
-                        'music-accent-hover': '#ff3355',
+                        'music-bg-base': '#09090b',
+                        'music-bg-elevated': '#1c1c1e',
+                        'music-bg-hover': '#27272a',
+                        'music-bg-card': '#18181b',
+                        'music-border': '#27272a',
+                        'music-text-primary': '#fafafa',
+                        'music-text-secondary': '#a1a1aa',
+                        'music-accent': '#e53e3e',
+                        'music-accent-hover': '#f56565',
+                        'music-ring': '#f56565',
                     }
                 }
             }
@@ -39,15 +37,21 @@
     </script>
     <style>
         :root {
-            --player-height: 90px;
-            --bg-primary: #101010;
-            --text-primary: #ffffff;
-            --text-secondary: #b3b3b3;
-            --accent-color: #e60023;
-            --accent-gradient: linear-gradient(135deg, #ff4d6d, #e60023);
+            --player-height: 72px;
+            --bg-primary: #09090b;
+            --bg-elevated: #1c1c1e;
+            --bg-card: #18181b;
+            --bg-hover: #27272a;
+            --border-color: #27272a;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --accent-color: #e53e3e;
+            --accent-hover: #f56565;
+            --ring-color: #f56565;
+            --accent-gradient: linear-gradient(135deg, var(--accent-hover), var(--accent-color));
             --skeleton-bg: #202020;
             --skeleton-highlight: #333333;
-            --lyrics-text-color: rgba(255, 255, 255, 0.6);
+            --lyrics-text-color: rgba(255, 255, 255, 0.7);
             --lyrics-active-color: var(--text-primary);
         }
         body { font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; background-color: var(--bg-primary); color: var(--text-primary); }
@@ -55,185 +59,202 @@
         body.lyrics-view-active #player-bar { display: none; }
         ::-webkit-scrollbar { width: 12px; }
         ::-webkit-scrollbar-track { background: var(--bg-primary); }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; border: 3px solid var(--bg-primary); }
-        ::-webkit-scrollbar-thumb:hover { background: #444; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; border: 3px solid var(--bg-primary); }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
         html, body { height: 100%; overflow: hidden; }
         #main-content { padding-bottom: calc(var(--player-height) + 2rem); }
         .control-active { color: var(--accent-color) !important; }
-        #play-pause-button { background: var(--accent-gradient); box-shadow: 0 6px 20px rgba(230, 0, 35, 0.35); }
-        #play-pause-button:hover { filter: brightness(1.15); }
-        .control-slider { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; cursor: pointer; height: 16px; }
-        .control-slider::-webkit-slider-runnable-track { width: 100%; height: 5px; border-radius: 5px; background: linear-gradient(to right, var(--progress-color, #fff) 0%, var(--progress-color, #fff) var(--progress-percent, 0%), #4f4f52 var(--progress-percent, 0%)); transition: all 0.2s ease; }
-        .control-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -5.5px; height: 16px; width: 16px; background-color: #fff; border-radius: 50%; opacity: 0; transition: opacity 0.2s ease-in-out; }
-        .control-slider:hover::-webkit-slider-thumb, .control-slider:active::-webkit-slider-thumb { opacity: 1; }
-        #player-bar:hover .control-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--accent-color) 0%, var(--accent-color) var(--progress-percent, 0%), #4f4f52 var(--progress-percent, 0%)); }
+        #play-pause-button, #lyrics-play-pause-button { background: var(--text-primary); color: var(--bg-elevated); }
+        #play-pause-button:hover, #lyrics-play-pause-button:hover { transform: scale(1.05); }
+        .control-slider { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; cursor: pointer; height: 12px; }
+        .control-slider::-webkit-slider-runnable-track { width: 100%; height: 4px; border-radius: 4px; background: linear-gradient(to right, var(--progress-color, #fff) 0%, var(--progress-color, #fff) var(--progress-percent, 0%), #4f4f52 var(--progress-percent, 0%)); transition: all 0.2s ease; }
+        .control-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -4px; height: 12px; width: 12px; background-color: #fff; border-radius: 50%; opacity: 0; transition: opacity 0.2s ease-in-out; }
+        .control-slider-wrapper:hover .control-slider::-webkit-slider-thumb { opacity: 1; }
+        .control-slider-wrapper:hover .control-slider::-webkit-slider-runnable-track { background: linear-gradient(to right, var(--accent-color) 0%, var(--accent-color) var(--progress-percent, 0%), #4f4f52 var(--progress-percent, 0%)); }
         .skeleton { position: relative; overflow: hidden; background-color: var(--skeleton-bg); }
         .skeleton::before { content: ''; position: absolute; top: 0; left: -150%; width: 150%; height: 100%; background: linear-gradient(90deg, transparent, var(--skeleton-highlight), transparent); animation: skeleton-shine 2s infinite cubic-bezier(0.4, 0.0, 0.2, 1); }
         @keyframes skeleton-shine { 100% { left: 100%; } }
-        .skeleton-artwork { width: 100%; padding-top: 100%; border-radius: 12px; margin-bottom: 12px; }
-        .skeleton-text { height: 1em; border-radius: 4px; margin-bottom: 8px; }
         #lyrics-view { display: none; }
-        body.lyrics-view-active #lyrics-view { display: flex; }
-        #lyrics-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; background-color: #000; }
+        body.lyrics-view-active #lyrics-view { display: flex; flex-direction: column; }
+        #lyrics-background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100; background-color: rgba(0,0,0,0.8); }
         .lyrics-bg-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(80px) brightness(0.35); transform: scale(1.2); opacity: 0; transition: opacity 1s ease-in-out; }
         .lyrics-bg-image.loaded { opacity: 1; }
-        #lyrics-content { position: relative; z-index: 101; width: 100%; height: 100%; display: flex; align-items: center; color: white; padding: 60px; }
-        #lyrics-container-wrapper { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
-        #lyrics-container { flex-grow: 1; overflow-y: auto; text-align: left; scroll-behavior: smooth; scroll-padding: 38% 0; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%); }
+        #lyrics-content { position: relative; z-index: 101; width: 100%; flex-grow: 1; display: flex; align-items: center; color: white; padding: 2rem 4rem; overflow: hidden; }
+        #lyrics-meta-column { width: 30%; flex-shrink: 0; }
+        #lyrics-container-wrapper { width: 70%; height: 100%; display: flex; flex-direction: column; overflow: hidden; padding-left: 1rem; }
+        #lyrics-container { flex-grow: 1; overflow-y: auto; text-align: left; scroll-behavior: smooth; scroll-padding: 38% 0; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%); }
         #lyrics-container::before, #lyrics-container::after { content: ''; display: block; height: 38%; }
-        .lyrics-line { font-size: 3rem; font-weight: 800; line-height: 1.4; margin: 0 0 0.8em 0; color: var(--lyrics-text-color); transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); cursor: pointer; opacity: 0.6; transform-origin: left center; }
-        .lyrics-line.active { color: var(--lyrics-active-color); transform: scale(1.05); opacity: 1; text-shadow: 0 0 30px rgba(255, 255, 255, 0.5); }
+        .lyrics-line { font-size: 2.3rem; font-weight: 673; line-height: 1.4; margin: 0 0 0.8em 0; color: var(--lyrics-text-color); transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); cursor: pointer; opacity: 0.6; transform-origin: left center; }
+        .lyrics-line.active { color: var(--lyrics-active-color); transform: scale(1.02); opacity: 1; text-shadow: 0 0 20px rgba(255, 255, 255, 0.3); }
         #lyrics-header { position: fixed; top: 0; right: 0; padding: 2rem; z-index: 110; }
-        .vertical-slider-container { position: absolute; bottom: 120%; left: 50%; background-color: #2c2c2e; padding: 16px 12px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); opacity: 0; visibility: hidden; transform-origin: bottom center; transform: translateX(-50%) translateY(10px); transition: all 0.25s cubic-bezier(0.4, 0.0, 0.2, 1); display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .control-wrapper:hover .vertical-slider-container { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+        #lyrics-controls { position: relative; z-index: 102; width: 100%; padding: 0.75rem 2rem; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); }
+        .vertical-slider-container { position: absolute; bottom: 100%; left: 50%; background-color: #2c2c2e; padding: 16px 12px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); opacity: 0; visibility: hidden; transform-origin: bottom center; transform: translateX(-50%) translateY(10px); transition: opacity 0.25s, visibility 0.25s, transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .control-wrapper.slider-active .vertical-slider-container { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
         .vertical-slider-bar { height: 100px; width: 6px; background-color: #4f4f52; border-radius: 3px; cursor: pointer; position: relative; }
         .vertical-slider-level { position: absolute; bottom: 0; width: 100%; background-color: var(--text-primary); border-radius: 3px; }
         .vertical-slider-bar:hover .vertical-slider-level { background-color: var(--accent-color); }
-        #pitch-slider { writing-mode: vertical-lr; direction: rtl; width: 8px; height: 100px; }
-        #pitch-reset-btn { font-size: 11px; font-weight: 500; color: var(--text-secondary); background: #3e3e40; padding: 3px 8px; border-radius: 6px; transition: all 0.2s ease; }
-        #pitch-reset-btn:hover { color: var(--text-primary); background: #505052; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
         .play-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; font-size: 1.25rem; border-radius: inherit; }
         .group:hover .play-overlay { opacity: 1; }
-        .song-row:hover { background-color: var(--music-bg-hover); }
+        .song-row:hover { background-color: var(--bg-hover); }
         .artist-hero { background-size: cover; background-position: center; position: relative; }
-        .artist-hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(16,16,16,1) 10%, rgba(16,16,16,0.6) 50%, rgba(16,16,16,1) 90%); }
-        .tab-button { padding: 0.75rem 1.5rem; border-bottom: 3px solid transparent; transition: all 0.2s ease-in-out; }
+        .artist-hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(9,9,11,1) 10%, rgba(9,9,11,0.6) 50%, rgba(9,9,11,1) 90%); }
+        .tab-button { padding: 0.75rem 1rem; border-bottom: 2px solid transparent; transition: all 0.2s ease-in-out; font-weight: 500; }
         .tab-button.active { color: var(--text-primary); border-bottom-color: var(--accent-color); }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
+        @media (max-width: 1024px) {
+            #lyrics-content { flex-direction: column; text-align: center; padding: 2rem 1rem; }
+            #lyrics-meta-column { width: 100%; max-width: 280px; align-items: center; margin-bottom: 2rem; text-align: center; }
+            #lyrics-container-wrapper { width: 100%; padding-left: 0; }
+        }
         @media (max-width: 768px) {
             #app-wrapper { flex-direction: column; }
-            #sidebar {
-                width: 100%;
-                height: auto;
-                padding: 1rem;
-                border-r: 0;
-                border-bottom: 1px solid var(--music-border);
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: space-between;
-                align-items: center;
-                gap: 1rem;
-            }
-            #sidebar > .relative { /* Search input wrapper */
-                order: 99; /* Force it to the last flex item */
-                width: 100%;
-                margin-top: 0;
-            }
-            #sidebar > nav {
-                margin-top: 0;
-            }
-            #home-btn > span { /* Hide "Home" text on mobile */
-                display: none;
-            }
-            #home-btn {
-                gap: 0;
-            }
+            #sidebar { width: 100%; height: auto; padding: 1rem; border-r: 0; border-bottom: 1px solid var(--border-color); flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; }
+            #sidebar > .relative { order: 99; width: 100%; margin-top: 0; }
+            #sidebar > nav { margin-top: 0; }
+            #home-btn > span { display: none; }
+            #home-btn { gap: 0; }
             #main-content { padding: 1.5rem; padding-bottom: calc(var(--player-height) * 2.5); }
             #player-bar { flex-direction: column; height: auto; padding: 1rem; gap: 1rem; }
             #player-bar > div { width: 100% !important; }
-            #player-bar .w-1\/3 { justify-content: center; }
-            #player-bar .justify-end { justify-content: center; }
             .lyrics-line { font-size: 2rem; }
-            #lyrics-content { flex-direction: column; text-align: center; }
-            #lyrics-meta-column { width: 100%; align-items: center; margin-bottom: 2rem; }
-            #lyrics-container-wrapper { width: 100%; }
+            #lyrics-controls { padding: 1rem; flex-direction: column; gap: 1rem; }
+            #lyrics-controls > div { width: 100% !important; }
             #search-tabs { display: block; white-space: nowrap; overflow-x: auto; }
         }
         @media (max-width: 640px) {
             .song-row > button[data-action='download-song'],
-            .song-row > span.w-10 {
-                display: none; /* Hide download button and time on small screens */
-            }
+            .song-row > span.w-10 { display: none; }
         }
     </style>
 </head>
 <body class="text-music-text-primary">
     
     <div id="app-wrapper" class="flex h-screen">
-        <aside id="sidebar" class="w-64 bg-black flex-shrink-0 p-8 flex flex-col border-r border-music-border/50 z-20">
-            <div class="flex items-center gap-3 text-music-accent">
+        <aside id="sidebar" class="w-64 bg-black flex-shrink-0 p-6 flex flex-col border-r border-music-border z-20">
+            <div class="flex items-center gap-3 text-music-accent mb-8">
                 <i class="fa-solid fa-compact-disc fa-2x fa-spin-pulse" style="--fa-animation-duration: 5s;"></i>
-                <span class="font-bold text-2xl tracking-tighter">Music</span>
+                <span class="font-bold text-xl tracking-tighter">Music</span>
             </div>
 
-            <div class="relative w-full mt-8">
-                <i class="fa-solid fa-magnifying-glass h-4 w-4 absolute top-1/2 left-4 -translate-y-1/2 text-music-text-secondary"></i>
-                <input id="search-input" type="search" placeholder="Artists, Songs, Albums" class="w-full bg-music-bg-elevated rounded-lg py-2.5 pl-11 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-music-accent transition-all" />
+            <div class="relative w-full">
+                <i class="fa-solid fa-magnifying-glass h-4 w-4 absolute top-1/2 left-3 -translate-y-1/2 text-music-text-secondary"></i>
+                <input id="search-input" type="search" placeholder="Artists, Songs, Albums" class="w-full bg-music-bg-elevated border border-music-border rounded-md py-2 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-music-ring transition-all" />
+                <button id="voice-search-btn" class="absolute top-1/2 right-3 -translate-y-1/2 text-music-text-secondary hover:text-white transition-colors" title="Search with your voice">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
             </div>
 
-            <nav class="mt-8">
-                <ul class="space-y-4">
-                    <li><a href="#" id="home-btn" class="flex items-center gap-4 text-lg font-semibold hover:text-white transition-colors text-music-text-secondary"><i class="fa-solid fa-home w-6 text-center"></i><span>Home</span></a></li>
+            <nav class="mt-6">
+                <ul class="space-y-2">
+                    <li><a href="#" id="home-btn" class="flex items-center gap-4 text-base font-medium hover:text-white transition-colors text-music-text-secondary px-3 py-2 rounded-md hover:bg-music-bg-hover"><i class="fa-solid fa-home w-5 text-center"></i><span>Home</span></a></li>
                 </ul>
             </nav>
         </aside>
 
-        <main id="main-content" class="flex-1 bg-music-bg-base p-12 overflow-y-auto">
+        <main id="main-content" class="flex-1 bg-music-bg-base p-8 overflow-y-auto">
             <div id="content-container"></div>
-            <div id="suggestions-container" class="mt-16"></div>
+            <div id="suggestions-container" class="mt-12"></div>
         </main>
     </div>
 
-    <footer id="player-bar" class="fixed bottom-0 left-0 w-full bg-music-bg-elevated/70 backdrop-blur-2xl border-t border-music-border/50 h-[var(--player-height)] px-6 flex items-center justify-between gap-6 z-30 transition-colors duration-300">
-        <div class="w-1/3 flex items-center gap-4 min-w-0">
-            <img id="player-art" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Album Art" class="w-16 h-16 rounded-lg shadow-lg bg-music-bg-hover" crossorigin="anonymous">
+    <footer id="player-bar" class="fixed bottom-0 left-0 w-full bg-music-bg-elevated border-t border-music-border h-[var(--player-height)] px-4 flex items-center justify-between gap-6 z-30">
+        <div class="w-1/4 flex items-center justify-start gap-3 min-w-0">
+            <img id="player-art" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Album Art" class="w-14 h-14 rounded-md bg-music-bg-hover" crossorigin="anonymous">
             <div class="min-w-0">
-                <h4 id="player-title" class="font-semibold truncate text-base text-music-text-primary">Not Playing</h4>
-                <div id="player-artist" class="text-sm text-music-text-secondary truncate">...</div>
+                <h4 id="player-title" class="font-medium truncate text-sm text-music-text-primary">Not Playing</h4>
+                <div id="player-artist" class="text-xs text-music-text-secondary truncate">...</div>
             </div>
         </div>
 
-        <div class="w-1/3 flex flex-col items-center justify-center gap-1">
-             <div class="flex items-center justify-center gap-6">
-                <button id="shuffle-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Shuffle Off"><i class="fa-solid fa-shuffle fa-lg"></i></button>
+        <div class="w-1/2 flex flex-col items-center justify-center gap-2 max-w-2xl">
+             <div class="flex items-center justify-center gap-5">
+                <button id="shuffle-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Shuffle Off"><i class="fa-solid fa-shuffle text-base"></i></button>
                 <button id="prev-button" class="player-button text-music-text-secondary hover:text-white transition-colors"><i class="fa-solid fa-backward-step fa-lg"></i></button>
-                <button id="play-pause-button" class="p-2 rounded-full text-white w-14 h-14 flex items-center justify-center transition-all hover:scale-105"><i id="play-pause-icon" class="fa-solid fa-play fa-xl ml-1"></i></button>
+                <button id="play-pause-button" class="p-2 rounded-full w-10 h-10 flex items-center justify-center transition-all"><i id="play-pause-icon" class="fa-solid fa-play fa-lg ml-0.5"></i></button>
                 <button id="next-button" class="player-button text-music-text-secondary hover:text-white transition-colors"><i class="fa-solid fa-forward-step fa-lg"></i></button>
-                <button id="repeat-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Repeat Off"><i id="repeat-icon" class="fa-solid fa-repeat fa-lg"></i></button>
+                <button id="repeat-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Repeat Off"><i id="repeat-icon" class="fa-solid fa-repeat text-base"></i></button>
             </div>
-            <div class="w-full max-w-xl flex items-center gap-3 text-xs text-music-text-secondary mt-1">
+            <div class="w-full flex items-center gap-3 text-xs text-music-text-secondary control-slider-wrapper">
                 <span id="current-time" class="w-10 text-right">0:00</span>
                 <input id="progress-bar" type="range" min="0" max="100" value="0" class="control-slider flex-grow">
                 <span id="total-time" class="w-10 text-left">0:00</span>
             </div>
         </div>
 
-        <div class="w-1/3 flex items-center justify-end gap-5">
-            <button id="lyrics-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Show Lyrics" disabled><i class="fa-solid fa-microphone-lines fa-lg"></i></button>
-            <div class="control-wrapper relative flex items-center">
-                <button id="pitch-btn" class="player-button text-music-text-secondary hover:text-white transition-colors font-semibold text-sm w-16 text-center" title="Adjust Speed/Pitch"><span class="tracking-wider">SPEED</span></button>
+        <div class="w-1/4 flex items-center justify-end gap-3">
+            <div id="pitch-control-wrapper" class="control-wrapper relative flex items-center">
+                <button id="pitch-btn" class="player-button text-music-text-secondary hover:text-white transition-colors font-semibold text-xs w-16 text-center" title="Adjust Speed/Pitch"><span class="tracking-wider">SPEED</span></button>
                 <div class="vertical-slider-container">
-                    <span id="pitch-value" class="font-bold text-lg text-white">1.00x</span>
+                    <span id="pitch-value" class="font-bold text-base text-white">1.00x</span>
                     <input id="pitch-slider" type="range" min="0.5" max="2.0" step="0.01" value="1">
                     <button id="pitch-reset-btn">Reset</button>
                 </div>
             </div>
             <div id="volume-control-wrapper" class="control-wrapper relative flex items-center">
-                <button id="volume-icon-btn" class="player-button text-music-text-secondary hover:text-white"><i id="volume-icon" class="fa-solid fa-volume-high fa-lg"></i></button>
+                <button id="volume-icon-btn" class="player-button text-music-text-secondary hover:text-white"><i id="volume-icon" class="fa-solid fa-volume-high"></i></button>
                 <div class="vertical-slider-container">
                     <div id="volume-bar" class="vertical-slider-bar"><div id="volume-level" class="vertical-slider-level" style="height: 100%;"></div></div>
                 </div>
             </div>
+            <button id="lyrics-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Show Lyrics" disabled><i class="fa-solid fa-microphone-lines"></i></button>
         </div>
     </footer>
     
     <div id="lyrics-view" class="h-screen w-screen fixed top-0 left-0 z-50">
         <div id="lyrics-background"><img id="lyrics-bg-image" src="" alt="" class="lyrics-bg-image" crossorigin="anonymous"/></div>
         <div id="lyrics-header"><button id="lyrics-view-close-btn" class="text-gray-400 hover:text-white transition-colors text-5xl leading-none">&times;</button></div>
+        
         <div id="lyrics-content" class="gap-16">
-            <div id="lyrics-meta-column" class="w-1/3 flex-shrink-0 flex flex-col items-start text-left">
-                <img id="lyrics-view-art" src="" alt="Album Art" class="w-full max-w-sm rounded-2xl shadow-2xl aspect-square" crossorigin="anonymous">
-                <h2 id="lyrics-view-title" class="text-5xl font-bold mt-8">Song Title</h2>
-                <div id="lyrics-view-artist" class="text-3xl text-music-text-secondary/90 mt-2">Artist Name</div>
-                <div id="lyrics-view-meta" class="text-md text-music-text-secondary/80 mt-6 space-y-1 font-medium"></div>
+            <div id="lyrics-meta-column">
+                <img id="lyrics-view-art" src="" alt="Album Art" class="w-full max-w-sm rounded-lg shadow-2xl aspect-square" crossorigin="anonymous">
+                <h2 id="lyrics-view-title" class="text-4xl font-bold mt-6">Song Title</h2>
+                <div id="lyrics-view-artist" class="text-2xl text-music-text-secondary/90 mt-1">Artist Name</div>
+                <div id="lyrics-view-meta" class="text-sm text-music-text-secondary/80 mt-4 space-y-1 font-normal"></div>
             </div>
-            <div id="lyrics-container-wrapper" class="w-2/3 flex-grow">
+            <div id="lyrics-container-wrapper">
                 <div id="lyrics-container"><p class="lyrics-status">Lyrics will appear here.</p></div>
             </div>
         </div>
+
+        <div id="lyrics-controls" class="flex items-center justify-between gap-6">
+            <div class="w-1/4 flex items-center justify-start gap-5">
+                <button id="lyrics-prev-button" class="player-button text-music-text-secondary hover:text-white transition-colors"><i class="fa-solid fa-backward-step fa-lg"></i></button>
+                <button id="lyrics-play-pause-button" class="p-2 rounded-full w-10 h-10 flex items-center justify-center transition-all"><i id="lyrics-play-pause-icon" class="fa-solid fa-play fa-lg ml-0.5"></i></button>
+                <button id="lyrics-next-button" class="player-button text-music-text-secondary hover:text-white transition-colors"><i class="fa-solid fa-forward-step fa-lg"></i></button>
+            </div>
+
+            <div class="w-1/2 flex-grow flex items-center gap-3 text-xs text-music-text-secondary control-slider-wrapper">
+                <span id="lyrics-current-time" class="w-10 text-right">0:00</span>
+                <input id="lyrics-progress-bar" type="range" min="0" max="100" value="0" class="control-slider flex-grow">
+                <span id="lyrics-total-time" class="w-10 text-left">0:00</span>
+            </div>
+
+            <div class="w-1/4 flex items-center justify-end gap-4">
+                <div id="lyrics-pitch-control-wrapper" class="control-wrapper relative flex items-center">
+                    <button id="lyrics-pitch-btn" class="player-button text-music-text-secondary hover:text-white transition-colors font-semibold text-xs w-16 text-center" title="Adjust Speed/Pitch"><span class="tracking-wider">SPEED</span></button>
+                    <div class="vertical-slider-container">
+                        <span id="lyrics-pitch-value" class="font-bold text-base text-white">1.00x</span>
+                        <input id="lyrics-pitch-slider" type="range" min="0.5" max="2.0" step="0.01" value="1">
+                        <button id="lyrics-pitch-reset-btn">Reset</button>
+                    </div>
+                </div>
+                <button id="lyrics-shuffle-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Shuffle Off"><i class="fa-solid fa-shuffle text-base"></i></button>
+                <button id="lyrics-repeat-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Repeat Off"><i id="lyrics-repeat-icon" class="fa-solid fa-repeat text-base"></i></button>
+                <div id="lyrics-volume-control-wrapper" class="control-wrapper relative flex items-center">
+                    <button id="lyrics-volume-icon-btn" class="player-button text-music-text-secondary hover:text-white"><i id="lyrics-volume-icon" class="fa-solid fa-volume-high"></i></button>
+                    <div class="vertical-slider-container">
+                        <div id="lyrics-volume-bar" class="vertical-slider-bar"><div id="lyrics-volume-level" class="vertical-slider-level" style="height: 100%;"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-notification" class="fixed bottom-24 right-6 bg-music-accent text-white py-3 px-6 rounded-lg shadow-lg text-sm font-semibold opacity-0 translate-y-4 transition-all duration-300 z-50">
+        Toast message
     </div>
 
     <audio id="audio-player" class="hidden"></audio>
@@ -276,24 +297,48 @@
                 shuffleBtn: document.getElementById('shuffle-btn'),
                 repeatBtn: document.getElementById('repeat-btn'),
                 repeatIcon: document.getElementById('repeat-icon'),
+                pitchControlWrapper: document.getElementById('pitch-control-wrapper'),
                 pitchBtn: document.getElementById('pitch-btn'),
                 pitchSlider: document.getElementById('pitch-slider'),
                 pitchValue: document.getElementById('pitch-value'),
                 pitchResetBtn: document.getElementById('pitch-reset-btn'),
+                voiceSearchBtn: document.getElementById('voice-search-btn'),
+
+                // Lyrics View Controls
+                lyricsPlayPauseButton: document.getElementById('lyrics-play-pause-button'),
+                lyricsPlayPauseIcon: document.getElementById('lyrics-play-pause-icon'),
+                lyricsProgressBar: document.getElementById('lyrics-progress-bar'),
+                lyricsCurrentTimeEl: document.getElementById('lyrics-current-time'),
+                lyricsTotalTimeEl: document.getElementById('lyrics-total-time'),
+                lyricsVolumeControlWrapper: document.getElementById('lyrics-volume-control-wrapper'),
+                lyricsVolumeBar: document.getElementById('lyrics-volume-bar'),
+                lyricsVolumeLevel: document.getElementById('lyrics-volume-level'),
+                lyricsVolumeIcon: document.getElementById('lyrics-volume-icon'),
+                lyricsPrevButton: document.getElementById('lyrics-prev-button'),
+                lyricsNextButton: document.getElementById('lyrics-next-button'),
+                lyricsShuffleBtn: document.getElementById('lyrics-shuffle-btn'),
+                lyricsRepeatBtn: document.getElementById('lyrics-repeat-btn'),
+                lyricsRepeatIcon: document.getElementById('lyrics-repeat-icon'),
+                lyricsPitchControlWrapper: document.getElementById('lyrics-pitch-control-wrapper'),
+                lyricsPitchBtn: document.getElementById('lyrics-pitch-btn'),
+                lyricsPitchSlider: document.getElementById('lyrics-pitch-slider'),
+                lyricsPitchValue: document.getElementById('lyrics-pitch-value'),
+                lyricsPitchResetBtn: document.getElementById('lyrics-pitch-reset-btn'),
             };
 
             const state = {
-                currentSongData: null, currentLyrics: null, lastActiveLyricIndex: -1, lastSearchQuery: '', lastSearchData: null, currentPlaylist: [], debounceTimer: null, apiBase: 'https://jiosvn.vercel.app/api', isShuffleOn: false, repeatMode: 'none', searchPage: {}, songViewMode: 'list', currentSearchTab: 'songs',
+                currentSongData: null, currentLyrics: null, lastActiveLyricIndex: -1, lastSearchQuery: '', lastSearchData: null, currentPlaylist: [], debounceTimer: null, apiBase: 'https://jiosvn.vercel.app/api', isShuffleOn: false, repeatMode: 'none', searchPage: {}, songViewMode: 'grid', currentSearchTab: 'songs',
+                isListening: false,
             };
 
             const util = {
                 getBestImageUrl: (images, quality = '500x500') => { const placeholder = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; if (!images || images.length === 0) return placeholder; const targetQuality = images.find(img => img.quality === quality); let url = targetQuality ? targetQuality.url : images[0].url; url = url.replace('http:', 'https:'); if (url.includes('artist-default')) return placeholder; return url; },
                 getBestAudioUrl: (urls) => { if (!urls || urls.length === 0) return null; const highQuality = urls.find(url => url.quality === '320kbps'); return (highQuality ? highQuality.url : urls[0].url).replace('http:', 'https:'); },
-                formatTime: (seconds) => { const totalSeconds = Math.floor(seconds); if (isNaN(totalSeconds) || totalSeconds < 1) return ''; const minutes = Math.floor(totalSeconds / 60); const secs = totalSeconds % 60; return `${minutes}:${secs < 10 ? '0' : ''}${secs}`; },
+                formatTime: (seconds) => { const totalSeconds = Math.floor(seconds); if (isNaN(totalSeconds) || totalSeconds < 0) return '0:00'; const minutes = Math.floor(totalSeconds / 60); const secs = totalSeconds % 60; return `${minutes}:${secs < 10 ? '0' : ''}${secs}`; },
                 formatNumber: (num) => { if (num === null || num === undefined) return 'N/A'; return new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(num); },
                 getArtistNames: (item) => { if (item?.artists?.primary && Array.isArray(item.artists.primary) && item.artists.primary.length > 0) { return item.artists.primary; } if (item?.primaryArtists) { if (typeof item.primaryArtists === 'string') return [{ name: item.primaryArtists, id: null }]; if (Array.isArray(item.primaryArtists)) return item.primaryArtists; } if (item?.more_info?.artistMap?.primary_artists) { return item.more_info.artistMap.primary_artists; } return []; },
                 renderArtistLinks: (artists) => { if (!artists || artists.length === 0) return '<span>Unknown Artist</span>'; return artists.map(artist => `<a href="#" data-type="artist" data-id="${artist.id}" class="hover:underline">${artist.name}</a>`).join(', '); },
-                getItemName: (item) => { return item?.name || item?.title || 'Untitled'; },
+                getItemName: (item) => { return (item?.name || item?.title || 'Untitled').replace(/&quot;/g, '"'); },
                 cleanFileName: (filename) => { return filename.replace(/[<>:"/\\|?*]/g, '-'); }
             };
             
@@ -306,7 +351,24 @@
                 getAlbum: (id) => api.fetchFromApi(`/albums?id=${id}`),
                 getArtist: (id) => api.fetchFromApi(`/artists/${id}`),
                 getSuggestions: (id) => api.fetchFromApi(`/songs/${id}/suggestions`),
-                getLyrics: (id) => api.fetchFromApi(`/lyrics?id=${id}`)
+            };
+
+            const lrcApi = {
+                searchLyrics: async (songTitle, artistName) => {
+                    const baseUrl = 'https://applelrcfetch-2.pages.dev/api/search';
+                    const url = `${baseUrl}?song=${encodeURIComponent(songTitle)}&artist=${encodeURIComponent(artistName)}`;
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            const errData = await response.json().catch(() => null);
+                            throw new Error(errData?.error || `Lyrics API error: ${response.statusText}`);
+                        }
+                        return await response.json();
+                    } catch (error) {
+                        console.error('Failed to fetch lyrics from LRC API:', error);
+                        return null;
+                    }
+                }
             };
 
             const ui = {
@@ -315,21 +377,21 @@
                 showSkeletonLoader: () => { ui.renderContent(`<div class="space-y-4"><div class="skeleton h-10 w-1/4"></div><div class="skeleton h-40 w-full"></div><div class="skeleton h-40 w-full"></div></div>`); },
                 renderInitialView: () => { state.lastSearchData = null; ui.renderContent(`<div class="h-full flex flex-col items-center justify-center text-center p-8"><h1 class="text-8xl font-extrabold text-music-text-secondary/10 tracking-tighter">Music</h1><p class="text-music-text-secondary mt-2 text-lg max-w-md">Use the search bar to discover a world of music. Find your favorite songs, albums, and artists to begin your listening journey.</p></div>`); dom.suggestionsContainer.innerHTML = ''; },
                 renderPaginatedSection: (category, data, renderer, query, page) => { if (!data || !data.results || data.results.length === 0) return '<p class="text-music-text-secondary text-center py-8">No results found in this category.</p>'; let html = renderer(data.results); html += ui.renderPaginationControls(data.total, page, query, category); return html; },
-                renderPaginationControls: (total, page, query, category) => { const totalPages = Math.ceil(total / 50); if (totalPages <= 1) return ''; let html = `<div class="flex justify-center items-center gap-4 mt-6">`; html += `<button data-action="change-page" data-page="${page - 1}" data-query="${query}" data-category="${category}" class="px-4 py-2 rounded-lg bg-music-bg-hover disabled:opacity-50 disabled:cursor-not-allowed" ${page === 1 ? 'disabled' : ''}>Previous</button>`; html += `<span class="font-semibold">Page ${page} of ${totalPages}</span>`; html += `<button data-action="change-page" data-page="${page + 1}" data-query="${query}" data-category="${category}" class="px-4 py-2 rounded-lg bg-music-bg-hover disabled:opacity-50 disabled:cursor-not-allowed" ${page >= totalPages ? 'disabled' : ''}>Next</button>`; html += `</div>`; return html; },
+                renderPaginationControls: (total, page, query, category) => { const totalPages = Math.ceil(total / 50); if (totalPages <= 1) return ''; let html = `<div class="flex justify-center items-center gap-4 mt-8">`; html += `<button data-action="change-page" data-page="${page - 1}" data-query="${query}" data-category="${category}" class="px-4 py-2 rounded-md bg-music-bg-hover disabled:opacity-50 disabled:cursor-not-allowed" ${page === 1 ? 'disabled' : ''}>Previous</button>`; html += `<span class="font-medium text-sm">Page ${page} of ${totalPages}</span>`; html += `<button data-action="change-page" data-page="${page + 1}" data-query="${query}" data-category="${category}" class="px-4 py-2 rounded-md bg-music-bg-hover disabled:opacity-50 disabled:cursor-not-allowed" ${page >= totalPages ? 'disabled' : ''}>Next</button>`; html += `</div>`; return html; },
                 renderSearchResults: (allData, query) => {
                     state.lastSearchData = allData; state.lastSearchQuery = query; const { songData, albumData, artistData } = allData;
                     const tabs = [ { id: 'songs', title: 'Songs', data: songData, renderer: state.songViewMode === 'list' ? ui.renderSongList : ui.renderSongGrid }, { id: 'albums', title: 'Albums', data: albumData, renderer: ui.renderGrid }, { id: 'artists', title: 'Artists', data: artistData, renderer: ui.renderGrid }, ];
                     const activeTabId = state.currentSearchTab;
 
-                    const tabButtonsHtml = tabs.map(tab => `<button class="tab-button font-semibold text-music-text-secondary ${tab.id === activeTabId ? 'active' : ''}" data-tab="${tab.id}">${tab.title}</button>`).join('');
+                    const tabButtonsHtml = tabs.map(tab => `<button class="tab-button text-music-text-secondary ${tab.id === activeTabId ? 'active' : ''}" data-tab="${tab.id}">${tab.title}</button>`).join('');
                     const viewToggleHtml = `
-                        <div id="song-view-toggle-container" class="${activeTabId === 'songs' ? 'flex' : 'hidden'} items-center">
-                            <button data-view="list" title="List View" class="p-2 rounded text-xl ${state.songViewMode === 'list' ? 'text-white' : 'text-music-text-secondary'} hover:text-white"><i class="fas fa-list"></i></button>
-                            <button data-view="grid" title="Grid View" class="p-2 rounded text-xl ${state.songViewMode === 'grid' ? 'text-white' : 'text-music-text-secondary'} hover:text-white"><i class="fas fa-grip"></i></button>
+                        <div id="song-view-toggle-container" class="${activeTabId === 'songs' ? 'flex' : 'hidden'} items-center gap-1">
+                            <button data-view="list" title="List View" class="p-2 rounded-md ${state.songViewMode === 'list' ? 'text-white bg-music-bg-hover' : 'text-music-text-secondary'} hover:text-white hover:bg-music-bg-hover"><i class="fas fa-list"></i></button>
+                            <button data-view="grid" title="Grid View" class="p-2 rounded-md ${state.songViewMode === 'grid' ? 'text-white bg-music-bg-hover' : 'text-music-text-secondary'} hover:text-white hover:bg-music-bg-hover"><i class="fas fa-grip"></i></button>
                         </div>`;
                     
                     const headerHtml = `<div class="flex justify-between items-center border-b border-music-border mb-6">
-                                            <div id="search-tabs" class="flex items-center">${tabButtonsHtml}</div>
+                                            <div id="search-tabs" class="flex items-center gap-2">${tabButtonsHtml}</div>
                                             ${viewToggleHtml}
                                         </div>`;
 
@@ -339,29 +401,68 @@
                     ui.renderContent(finalHtml);
                 },
                 renderGrid: (items) => {
-                    if (!items) return ''; let html = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-x-6 gap-y-8">`;
-                    items.forEach(item => { const artistLinks = util.renderArtistLinks(util.getArtistNames(item)); const subtext = item.type === 'artist' ? 'Artist' : (artistLinks || item.year || ''); const imageClass = item.type === 'artist' ? 'rounded-full' : 'rounded-lg'; html += `<div data-type="${item.type}" data-id="${item.id}" class="p-3 rounded-xl hover:bg-music-bg-hover transition-colors cursor-pointer group"><img src="${util.getBestImageUrl(item.image)}" alt="${util.getItemName(item)}" class="w-full ${imageClass} mb-4 aspect-square object-cover bg-music-bg-base group-hover:scale-105 transition-transform duration-300 shadow-lg" crossorigin="anonymous"><h3 class="font-semibold truncate text-sm">${util.getItemName(item)}</h3><div class="text-sm text-music-text-secondary truncate">${subtext}</div></div>`; });
+                    if (!items) return ''; let html = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">`;
+                    items.forEach(item => { 
+                        const artistLinks = util.renderArtistLinks(util.getArtistNames(item)); 
+                        const subtext = item.type === 'artist' ? 'Artist' : (artistLinks || item.year || ''); 
+                        const imageClass = item.type === 'artist' ? 'rounded-full' : 'rounded-md'; 
+                        const songJson = JSON.stringify(item).replace(/'/g, "&apos;");
+                        html += `
+                        <div data-type="${item.type}" data-id="${item.id}" data-song-json='${songJson}' class="bg-music-bg-card border border-transparent hover:border-music-border rounded-lg p-4 transition-all cursor-pointer group">
+                            <div class="relative mb-3">
+                                <img src="${util.getBestImageUrl(item.image)}" alt="${util.getItemName(item)}" class="w-full ${imageClass} aspect-square object-cover bg-music-bg-base shadow-lg" crossorigin="anonymous">
+                                ${item.type === 'song' ? '<div class="play-overlay rounded-md"><i class="fas fa-play"></i></div>' : ''}
+                            </div>
+                            <h3 class="font-semibold truncate text-sm text-music-text-primary">${util.getItemName(item)}</h3>
+                            <div class="text-xs text-music-text-secondary truncate">${subtext}</div>
+                        </div>`; 
+                    });
                     return html + `</div>`;
                 },
-                renderSongGrid: (songs) => {
-                    if (!songs || songs.length === 0) return ''; let html = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-x-6 gap-y-8">`;
-                    songs.forEach(song => { const artistLinks = util.renderArtistLinks(util.getArtistNames(song)); html += `<div data-type="song" data-id="${song.id}" class="p-3 rounded-xl hover:bg-music-bg-hover transition-colors cursor-pointer group"><div class="relative"><img src="${util.getBestImageUrl(song.image)}" alt="${util.getItemName(song)}" class="w-full rounded-lg mb-4 aspect-square object-cover bg-music-bg-base group-hover:scale-105 transition-transform duration-300 shadow-lg" crossorigin="anonymous"><div class="play-overlay"><i class="fas fa-play"></i></div></div><h3 class="font-semibold truncate text-sm">${util.getItemName(song)}</h3><div class="text-sm text-music-text-secondary truncate">${artistLinks}</div></div>`; });
-                    return html + `</div>`;
-                },
+                renderSongGrid: (songs) => ui.renderGrid(songs),
                 renderSongList: (songs, isNumbered = false) => {
                     if (!songs || songs.length === 0) return ''; let html = `<div class="space-y-1">`;
-                    songs.forEach((song, index) => { const durationText = util.formatTime(song.duration); const artistLinks = util.renderArtistLinks(util.getArtistNames(song)); const songJson = JSON.stringify(song).replace(/'/g, "&apos;"); html += `<div class="song-row p-2 rounded-lg transition-colors flex items-center gap-4 group border-b border-transparent hover:border-music-border/20"><div data-type="song" data-id="${song.id}" class="relative flex-shrink-0 w-12 h-12 cursor-pointer"><span class="absolute inset-0 flex items-center justify-center text-music-text-secondary group-hover:hidden">${isNumbered ? (index + 1) : ''}</span><div class="absolute inset-0 hidden group-hover:flex items-center justify-center text-white"><i class="fas fa-play fa-lg"></i></div></div><img data-type="song" data-id="${song.id}" src="${util.getBestImageUrl(song.image, '150x150')}" alt="${util.getItemName(song)}" class="w-12 h-12 rounded-md object-cover bg-music-bg-base shadow-md cursor-pointer" crossorigin="anonymous"><div class="flex-1 min-w-0"><h3 data-type="song" data-id="${song.id}" class="font-semibold truncate text-music-text-primary cursor-pointer">${util.getItemName(song)}</h3><div class="text-music-text-secondary text-sm truncate">${artistLinks}</div></div><button data-action="download-song" data-song-json='${songJson}' class="text-music-text-secondary hover:text-white px-3 transition-colors" title="Download Song"><i class="fas fa-download"></i></button><span class="text-music-text-secondary text-sm w-10 text-right flex-shrink-0 pr-4">${durationText}</span></div>`; });
+                    songs.forEach((song, index) => { 
+                        const durationText = util.formatTime(song.duration); 
+                        const artistLinks = util.renderArtistLinks(util.getArtistNames(song)); 
+                        const songJson = JSON.stringify(song).replace(/'/g, "&apos;"); 
+                        html += `
+                        <div class="song-row p-2.5 rounded-md transition-colors flex items-center gap-4 group" data-type="song" data-id="${song.id}" data-song-json='${songJson}'>
+                            <div class="relative flex-shrink-0 w-11 h-11 cursor-pointer">
+                                <span class="absolute inset-0 flex items-center justify-center text-music-text-secondary group-hover:hidden font-medium text-sm">${isNumbered ? (index + 1) : ''}</span>
+                                <div class="absolute inset-0 hidden group-hover:flex items-center justify-center text-white bg-black/50 rounded-md"><i class="fas fa-play"></i></div>
+                                <img src="${util.getBestImageUrl(song.image, '150x150')}" alt="${util.getItemName(song)}" class="w-11 h-11 rounded-md object-cover bg-music-bg-base shadow-md" crossorigin="anonymous">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-medium truncate text-sm text-music-text-primary">${util.getItemName(song)}</h3>
+                                <div class="text-music-text-secondary text-xs truncate">${artistLinks}</div>
+                            </div>
+                            <button data-action="download-song" data-song-json='${songJson}' class="text-music-text-secondary hover:text-white px-3 transition-colors opacity-0 group-hover:opacity-100" title="Download Song"><i class="fas fa-download"></i></button>
+                            <span class="text-music-text-secondary text-xs w-10 text-right flex-shrink-0 pr-2">${durationText}</span>
+                        </div>`; 
+                    });
                     return html + `</div>`;
                 },
-                renderAlbumPage: (album) => { let html = navigation.getBackButton(); html += `<div class="fade-in-up"><div class="flex flex-col md:flex-row gap-8 items-center md:items-start mb-10"><img src="${util.getBestImageUrl(album.data.image)}" alt="${album.data.name}" class="w-48 h-48 md:w-56 md:h-56 rounded-xl shadow-2xl object-cover flex-shrink-0" crossorigin="anonymous"><div class="mt-4 md:mt-2 text-center md:text-left"><p class="text-sm font-semibold uppercase tracking-wider text-music-text-secondary">Album</p><h2 class="text-4xl lg:text-6xl font-extrabold tracking-tight">${album.data.name}</h2><div class="text-xl text-music-text-primary/90 font-semibold mt-3">${util.renderArtistLinks(util.getArtistNames(album.data))}</div><p class="text-md text-music-text-secondary mt-1">${album.data.year} • ${album.data.songCount} Songs</p></div></div>${ui.renderSongList(album.data.songs, true)}</div>`; ui.renderContent(html); },
-                renderArtistPage: (artist) => { const artistData = artist.data; let html = navigation.getBackButton(); html += `<div class="fade-in-up"><div class="artist-hero p-8 md:p-12 rounded-2xl flex items-end min-h-[300px] md:min-h-[400px] mb-12" style="background-image: url('${util.getBestImageUrl(artistData.image)}')"><div class="relative z-10">${artistData.isVerified ? '<p class="font-bold uppercase text-sm">Verified Artist</p>' : ''}<h1 class="text-5xl md:text-8xl font-black tracking-tighter">${artistData.name}</h1><p class="mt-2 text-lg text-music-text-secondary font-medium">${util.formatNumber(artistData.followerCount)} followers</p></div></div>`; html += ui.renderSongList(artistData.topSongs); html += ui.renderGrid(artistData.topAlbums); html += `</div>`; ui.renderContent(html); },
-                renderSuggestions: (songs) => { if (!songs || !songs.data || songs.data.length === 0) { dom.suggestionsContainer.innerHTML = ''; return; } let html = `<h2 class="text-3xl font-bold mb-6">Similar Songs</h2>${ui.renderSongList(songs.data)}`; dom.suggestionsContainer.innerHTML = html; }
+                renderAlbumPage: (album) => { let html = navigation.getBackButton(); html += `<div class="fade-in-up"><div class="flex flex-col md:flex-row gap-8 items-center md:items-start mb-10"><img src="${util.getBestImageUrl(album.data.image)}" alt="${album.data.name}" class="w-48 h-48 md:w-56 md:h-56 rounded-lg shadow-2xl object-cover flex-shrink-0" crossorigin="anonymous"><div class="mt-4 md:mt-2 text-center md:text-left"><p class="text-sm font-semibold uppercase tracking-wider text-music-text-secondary">Album</p><h2 class="text-4xl lg:text-5xl font-extrabold tracking-tight mt-1">${album.data.name}</h2><div class="text-lg text-music-text-primary/90 font-medium mt-3">${util.renderArtistLinks(util.getArtistNames(album.data))}</div><p class="text-sm text-music-text-secondary mt-1">${album.data.year} • ${album.data.songCount} Songs</p></div></div>${ui.renderSongList(album.data.songs, true)}</div>`; ui.renderContent(html); },
+                renderArtistPage: (artist) => { const artistData = artist.data; let html = navigation.getBackButton(); html += `<div class="fade-in-up"><div class="artist-hero p-8 md:p-12 rounded-lg flex items-end min-h-[300px] md:min-h-[400px] mb-12" style="background-image: url('${util.getBestImageUrl(artistData.image)}')"><div class="relative z-10">${artistData.isVerified ? '<p class="font-bold uppercase text-xs tracking-widest">Verified Artist</p>' : ''}<h1 class="text-5xl md:text-7xl font-black tracking-tighter">${artistData.name}</h1><p class="mt-2 text-base text-music-text-secondary font-medium">${util.formatNumber(artistData.followerCount)} followers</p></div></div><h2 class="text-2xl font-bold mb-4">Top Songs</h2>${ui.renderSongList(artistData.topSongs)}<h2 class="text-2xl font-bold mt-8 mb-4">Top Albums</h2>${ui.renderGrid(artistData.topAlbums)}</div>`; ui.renderContent(html); },
+                renderSuggestions: (songs) => { if (!songs || !songs.data || songs.data.length === 0) { dom.suggestionsContainer.innerHTML = ''; return; } let html = `<h2 class="text-2xl font-bold mb-4">Similar Songs</h2>${ui.renderSongList(songs.data)}`; dom.suggestionsContainer.innerHTML = html; },
+                showToast: (message) => {
+                    const toast = document.getElementById('toast-notification');
+                    if (!toast) return;
+                    toast.textContent = message;
+                    toast.style.opacity = '1';
+                    toast.style.transform = 'translateY(0)';
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateY(1rem)';
+                    }, 3000);
+                },
             };
 
             const navigation = {
                 goHome: () => { ui.renderInitialView(); dom.searchInput.value = ''; },
                 goBackToSearch: () => { if (state.lastSearchData) { ui.renderSearchResults(state.lastSearchData, state.lastSearchQuery); } else { navigation.goHome(); } },
-                getBackButton: () => { return state.lastSearchData ? `<div class="mb-8"><button data-action="go-back-to-search" class="text-music-text-secondary hover:text-white transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i> Back to Search Results</button></div>` : ''; },
+                getBackButton: () => { return state.lastSearchData ? `<div class="mb-8"><button data-action="go-back-to-search" class="text-music-text-secondary hover:text-white transition-colors font-medium text-sm"><i class="fa-solid fa-arrow-left mr-2"></i> Back to Search</button></div>` : ''; },
                 view: async (type, id) => {
                     ui.showSkeletonLoader(); dom.suggestionsContainer.innerHTML = ''; let data;
                     if (type === 'search') {
@@ -376,7 +477,7 @@
             };
             
             const player = {
-                playSong: async (songId) => { try { const songResult = await api.getSong(songId); if (!songResult || !songResult.data || songResult.data.length === 0) throw new Error('Could not fetch song details.'); const songData = songResult.data[0]; state.currentSongData = songData; const audioUrl = util.getBestAudioUrl(songData.downloadUrl); if (!audioUrl) { alert("Sorry, no streamable audio found for this song."); return; } dom.audioPlayer.src = audioUrl; dom.audioPlayer.play(); player.updatePlayerUI(songData); api.getSuggestions(songId).then(ui.renderSuggestions); } catch (error) { console.error("Failed to play song:", error); alert("Error playing song. Check the console for details."); } },
+                playSong: async (songId) => { try { const songResult = await api.getSong(songId); if (!songResult || !songResult.data || songResult.data.length === 0) throw new Error('Could not fetch song details.'); const songData = songResult.data[0]; state.currentSongData = songData; const audioUrl = util.getBestAudioUrl(songData.downloadUrl); if (!audioUrl) { ui.showToast("Sorry, no streamable audio found for this song."); return; } dom.audioPlayer.src = audioUrl; dom.audioPlayer.play(); player.updatePlayerUI(songData); api.getSuggestions(songId).then(ui.renderSuggestions); } catch (error) { console.error("Failed to play song:", error); ui.showToast("Error playing song."); } },
                 downloadSong: async (song) => {
                     const button = document.querySelector(`button[data-song-json*='"id":"${song.id}"'] i`);
                     if (!button) return;
@@ -393,11 +494,10 @@
                         const copyright = song.copyright || '';
                         const composers = song.artists.all.filter(a => a.role === 'music' || a.role === 'lyricist').map(a => a.name).filter((v, i, s) => s.indexOf(v) === i).join('; ');
                         await ffmpeg.load();
-                        const corsProxy = 'https://my-proxy.junkuseless191.workers.dev/';
                         const audioUrl = util.getBestAudioUrl(song.downloadUrl);
                         const imageUrl = util.getBestImageUrl(song.image, '500x500');
                         if (!audioUrl) throw new Error("No high-quality audio URL found.");
-                        const [audioData, imageData] = await Promise.all([ fetchFile(corsProxy + audioUrl).catch((e) => { console.error(e); throw new Error("Failed to download audio file.") }), fetchFile(corsProxy + imageUrl).catch(() => null) ]);
+                        const [audioData, imageData] = await Promise.all([ fetchFile(audioUrl).catch((e) => { console.error(e); throw new Error("Failed to download audio file.") }), fetchFile(imageUrl).catch(() => null) ]);
                         let metadataText = ';FFMETADATA1\n';
                         metadataText += `title=${title}\n`;
                         metadataText += `artist=${artists}\n`;
@@ -421,24 +521,200 @@
                         const artistString = util.getArtistNames(song).map(a => a.name).join(', ');
                         link.download = util.cleanFileName(`${artistString} - ${title}.m4a`);
                         document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(link.href);
-                    } catch (error) { console.error('Download failed:', error); alert(`Download failed: ${error.message}`);
+                    } catch (error) { console.error('Download failed:', error); ui.showToast(`Download failed: ${error.message}`);
                     } finally { if (button) button.className = 'fas fa-download'; }
                 },
                 playPrevSong: () => { if (state.currentPlaylist.length < 2 || !state.currentSongData) return; const currentIndex = state.currentPlaylist.findIndex(song => song.id === state.currentSongData.id); if (currentIndex === -1) { if (state.currentPlaylist.length > 0) player.playSong(state.currentPlaylist[0].id); return; } const prevIndex = (currentIndex - 1 + state.currentPlaylist.length) % state.currentPlaylist.length; player.playSong(state.currentPlaylist[prevIndex].id); },
-                playNextSong: () => { if (!state.currentSongData || state.currentPlaylist.length < 1) return; let nextIndex; const currentIndex = state.currentPlaylist.findIndex(song => song.id === state.currentSongData.id); if (state.isShuffleOn) { do { nextIndex = Math.floor(Math.random() * state.currentPlaylist.length); } while (state.currentPlaylist.length > 1 && nextIndex === currentIndex); } else { if (currentIndex === -1 || currentIndex === state.currentPlaylist.length - 1) { if (state.repeatMode === 'all') nextIndex = 0; else return; } else { nextIndex = currentIndex + 1; } } if (state.currentPlaylist[nextIndex]) { player.playSong(state.currentPlaylist[nextIndex].id); } },
-                handleSongEnd: () => { if (state.repeatMode === 'one' && state.currentSongData) { player.playSong(state.currentSongData.id); } else { player.playNextSong(); } },
-                updatePlayerUI: (songData) => { const imageUrl = util.getBestImageUrl(songData.image); const artistLinks = util.renderArtistLinks(util.getArtistNames(songData)); dom.playerArt.src = imageUrl; dom.playerTitle.textContent = util.getItemName(songData); dom.playerArtist.innerHTML = artistLinks; document.title = `${util.getItemName(songData)} - ${util.getArtistNames(songData).map(a=>a.name).join(', ')}`; dom.lyricsViewArt.src = imageUrl; dom.lyricsViewTitle.textContent = util.getItemName(songData); dom.lyricsViewArtist.innerHTML = artistLinks; dom.lyricsViewMeta.innerHTML = `<p><strong>Album:</strong> ${songData.album?.name || 'Single'}</p><p><strong>Year:</strong> ${songData.year || 'N/A'}</p><p><strong>Duration:</strong> ${util.formatTime(songData.duration)}</p>`; dom.lyricsBgImage.classList.remove('loaded'); dom.lyricsBgImage.src = imageUrl; dom.lyricsBgImage.onload = () => dom.lyricsBgImage.classList.add('loaded'); dom.lyricsBtn.disabled = !songData.hasLyrics; },
-                fetchAndRenderLyrics: async (song) => { state.currentLyrics = null; if (!song.lyricsId) { dom.lyricsContainer.innerHTML = `<p class="lyrics-status text-2xl font-semibold opacity-50">Lyrics not available for this song.</p>`; return; } dom.lyricsContainer.innerHTML = `<p class="lyrics-status"><i class="fa-solid fa-spinner fa-spin"></i> Loading lyrics...</p>`; try { const lyricsResponse = await api.getLyrics(song.lyricsId); if (lyricsResponse?.data?.lyrics) { state.currentLyrics = player.parseLrc(lyricsResponse.data.lyrics); dom.lyricsContainer.innerHTML = state.currentLyrics.map(line => `<p class="lyrics-line" data-time="${line.time}">${line.text || '♪'}</p>`).join(''); } else { dom.lyricsContainer.innerHTML = `<p class="lyrics-status text-2xl font-semibold opacity-50">No synchronized lyrics found.</p>`; } } catch (error) { console.error("Lyrics fetch failed:", error); dom.lyricsContainer.innerHTML = `<p class="lyrics-status text-2xl font-semibold opacity-50">Could not load lyrics.</p>`; } },
-                parseLrc: (lrcText) => { if (!lrcText) return []; const lines = lrcText.split('\n'); const parsed = []; const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g; for (const line of lines) { const text = line.replace(timeRegex, '').trim(); let match; timeRegex.lastIndex = 0; if (text) { while ((match = timeRegex.exec(line)) !== null) { const time = parseInt(match[1], 10) * 60 + parseInt(match[2], 10) + parseInt(match[3].padEnd(3, '0'), 10) / 1000; parsed.push({ time, text }); } } } return parsed.sort((a, b) => a.time - b.time); },
+                playNextSong: () => {
+                    if (!state.currentSongData) return 'ended';
+                    if (state.currentPlaylist.length < 1) return 'ended';
+
+                    let nextIndex;
+                    const currentIndex = state.currentPlaylist.findIndex(song => song.id === state.currentSongData.id);
+
+                    if (state.isShuffleOn) {
+                        do {
+                            nextIndex = Math.floor(Math.random() * state.currentPlaylist.length);
+                        } while (state.currentPlaylist.length > 1 && nextIndex === currentIndex);
+                    } else {
+                        if (currentIndex === -1 || currentIndex === state.currentPlaylist.length - 1) {
+                            if (state.repeatMode === 'all') {
+                                nextIndex = 0;
+                            } else {
+                                return 'ended';
+                            }
+                        } else {
+                            nextIndex = currentIndex + 1;
+                        }
+                    }
+
+                    if (state.currentPlaylist[nextIndex]) {
+                        player.playSong(state.currentPlaylist[nextIndex].id);
+                        return 'playing';
+                    }
+                    return 'ended';
+                },
+                handleSongEnd: async () => {
+                    if (state.repeatMode === 'one' && state.currentSongData) {
+                        player.playSong(state.currentSongData.id);
+                        return;
+                    }
+
+                    const status = player.playNextSong();
+
+                    if (status === 'ended') {
+                        console.log("End of playlist. Autoplaying similar song.");
+                        ui.showToast("Finding a similar song to play next...");
+                        try {
+                            const suggestions = await api.getSuggestions(state.currentSongData.id);
+                            if (suggestions && suggestions.data && suggestions.data.length > 0) {
+                                const nextSong = suggestions.data[0];
+                                state.currentPlaylist = suggestions.data;
+                                state.isShuffleOn = false;
+                                state.repeatMode = 'none';
+                                player.updateAllControlsUI();
+                                player.playSong(nextSong.id);
+                            } else {
+                                ui.showToast("Couldn't find any similar songs.");
+                            }
+                        } catch (error) {
+                            console.error("Failed to fetch suggestions for autoplay:", error);
+                            ui.showToast("Error finding next song.");
+                        }
+                    }
+                },
+                updatePlayerUI: (songData) => { const imageUrl = util.getBestImageUrl(songData.image); const artistLinks = util.renderArtistLinks(util.getArtistNames(songData)); dom.playerArt.src = imageUrl; dom.playerTitle.textContent = util.getItemName(songData); dom.playerArtist.innerHTML = artistLinks; document.title = `${util.getItemName(songData)} - ${util.getArtistNames(songData).map(a=>a.name).join(', ')}`; dom.lyricsViewArt.src = imageUrl; dom.lyricsViewTitle.textContent = util.getItemName(songData); dom.lyricsViewArtist.innerHTML = artistLinks; dom.lyricsViewMeta.innerHTML = `<p><strong>Album:</strong> ${songData.album?.name || 'Single'}</p><p><strong>Year:</strong> ${songData.year || 'N/A'}</p><p><strong>Duration:</strong> ${util.formatTime(songData.duration)}</p>`; dom.lyricsBgImage.classList.remove('loaded'); dom.lyricsBgImage.src = imageUrl; dom.lyricsBgImage.onload = () => dom.lyricsBgImage.classList.add('loaded'); dom.lyricsBtn.disabled = false; },
+                fetchAndRenderLyrics: async (song) => {
+                    state.currentLyrics = null;
+                    const songTitle = util.getItemName(song);
+                    const artistsArray = util.getArtistNames(song);
+                    const artistName = artistsArray.length > 0 ? artistsArray[0].name : '';
+
+                    if (!songTitle || !artistName) {
+                        dom.lyricsContainer.innerHTML = `<p class="lyrics-status text-2xl font-semibold opacity-50">Not enough info to find lyrics.</p>`;
+                        return;
+                    }
+
+                    dom.lyricsContainer.innerHTML = `<p class="lyrics-status"><i class="fa-solid fa-spinner fa-spin"></i> Searching for lyrics...</p>`;
+                    try {
+                        const lrcResponse = await lrcApi.searchLyrics(songTitle, artistName);
+                        
+                        if (lrcResponse && lrcResponse.lyrics) {
+                            state.currentLyrics = player.parseLrc(lrcResponse.lyrics);
+                            if (state.currentLyrics.length > 0) {
+                                dom.lyricsContainer.innerHTML = state.currentLyrics.map(line => `<p class="lyrics-line" data-time="${line.time}">${line.text || '♪'}</p>`).join('');
+                            } else {
+                                dom.lyricsContainer.innerHTML = `<p class="lyrics-status text-2xl font-semibold opacity-50">Lyrics found, but they are not synchronized.</p>`;
+                            }
+                        } else {
+                            dom.lyricsContainer.innerHTML = `<p class="lyrics-status text-2xl font-semibold opacity-50">No synchronized lyrics found.</p>`;
+                        }
+                    } catch (error) {
+                        console.error("Lyrics fetch failed:", error);
+                        dom.lyricsContainer.innerHTML = `<p class="lyrics-status text-2xl font-semibold opacity-50">Could not load lyrics.</p>`;
+                    }
+                },
+                parseLrc: (lrcText) => { if (!lrcText) return []; const lines = lrcText.split('\n'); const parsed = []; const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g; for (const line of lines) { const text = line.replace(timeRegex, '').trim(); let match; timeRegex.lastIndex = 0; if (text || line.includes('[')) { while ((match = timeRegex.exec(line)) !== null) { const time = parseInt(match[1], 10) * 60 + parseInt(match[2], 10) + parseInt(match[3].padEnd(3, '0'), 10) / 1000; parsed.push({ time, text: text || '♪' }); } } } return parsed.sort((a, b) => a.time - b.time); },
                 updateSyncedLyrics: (currentTime) => { if (!state.currentLyrics || state.currentLyrics.length === 0) return; let activeIndex = -1; for (let i = state.currentLyrics.length - 1; i >= 0; i--) { if (currentTime >= state.currentLyrics[i].time - 0.2) { activeIndex = i; break; } } if (activeIndex !== state.lastActiveLyricIndex) { const lines = dom.lyricsContainer.querySelectorAll('.lyrics-line'); if (state.lastActiveLyricIndex !== -1 && lines[state.lastActiveLyricIndex]) lines[state.lastActiveLyricIndex].classList.remove('active'); if (activeIndex !== -1 && lines[activeIndex]) { lines[activeIndex].classList.add('active'); lines[activeIndex].scrollIntoView({ behavior: 'smooth', block: 'center' }); } state.lastActiveLyricIndex = activeIndex; } },
-                setVolume: (volume) => { volume = Math.max(0, Math.min(1, volume)); dom.audioPlayer.volume = volume; localStorage.setItem('musicPlayerVolume', volume); dom.volumeLevel.style.height = `${volume * 100}%`; dom.volumeIcon.className = 'fa-solid fa-lg ' + (volume > 0.5 ? 'fa-volume-high' : volume > 0 ? 'fa-volume-low' : 'fa-volume-xmark'); }
+                setVolume: (volume) => { 
+                    volume = Math.max(0, Math.min(1, volume)); 
+                    dom.audioPlayer.volume = volume; 
+                    localStorage.setItem('musicPlayerVolume', volume); 
+                    
+                    const iconClass = volume > 0.5 ? 'fa-volume-high' : volume > 0 ? 'fa-volume-low' : 'fa-volume-xmark';
+                    dom.volumeIcon.className = 'fa-solid ' + iconClass;
+                    dom.lyricsVolumeIcon.className = 'fa-solid ' + iconClass;
+
+                    dom.volumeLevel.style.height = `${volume * 100}%`; 
+                    dom.lyricsVolumeLevel.style.height = `${volume * 100}%`; 
+                },
+                updateAllControlsUI: () => {
+                    // Play/Pause
+                    const isPaused = dom.audioPlayer.paused;
+                    dom.playPauseIcon.className = `fa-solid ${isPaused ? 'fa-play fa-lg ml-0.5' : 'fa-pause fa-lg'}`;
+                    dom.lyricsPlayPauseIcon.className = `fa-solid ${isPaused ? 'fa-play fa-lg ml-0.5' : 'fa-pause fa-lg'}`;
+
+                    // Shuffle
+                    dom.shuffleBtn.classList.toggle('control-active', state.isShuffleOn);
+                    dom.lyricsShuffleBtn.classList.toggle('control-active', state.isShuffleOn);
+                    const shuffleTitle = state.isShuffleOn ? 'Shuffle On' : 'Shuffle Off';
+                    dom.shuffleBtn.title = shuffleTitle;
+                    dom.lyricsShuffleBtn.title = shuffleTitle;
+
+                    // Repeat
+                    dom.repeatBtn.classList.toggle('control-active', state.repeatMode !== 'none');
+                    dom.lyricsRepeatBtn.classList.toggle('control-active', state.repeatMode !== 'none');
+                    const repeatIconClass = 'fa-solid text-base ' + (state.repeatMode === 'one' ? 'fa-1' : 'fa-repeat');
+                    dom.repeatIcon.className = repeatIconClass;
+                    dom.lyricsRepeatIcon.className = repeatIconClass;
+                    const repeatTitle = state.repeatMode === 'one' ? 'Repeat One' : (state.repeatMode === 'all' ? 'Repeat All' : 'Repeat Off');
+                    dom.repeatBtn.title = repeatTitle;
+                    dom.lyricsRepeatBtn.title = repeatTitle;
+                }
+            };
+
+            const voiceSearch = {
+                recognition: null,
+                init: () => {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (!SpeechRecognition) {
+                        console.warn("Speech Recognition not supported by this browser.");
+                        dom.voiceSearchBtn.style.display = 'none';
+                        return;
+                    }
+                    voiceSearch.recognition = new SpeechRecognition();
+                    voiceSearch.recognition.continuous = false;
+                    voiceSearch.recognition.lang = 'en-US';
+                    voiceSearch.recognition.interimResults = false;
+                    voiceSearch.recognition.maxAlternatives = 1;
+
+                    voiceSearch.recognition.onstart = () => {
+                        state.isListening = true;
+                        dom.voiceSearchBtn.classList.add('control-active');
+                        dom.searchInput.placeholder = 'Listening...';
+                    };
+
+                    voiceSearch.recognition.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        dom.searchInput.value = transcript;
+                        navigation.view('search', transcript);
+                    };
+
+                    voiceSearch.recognition.onspeechend = () => {
+                        voiceSearch.recognition.stop();
+                    };
+
+                    voiceSearch.recognition.onend = () => {
+                        state.isListening = false;
+                        dom.voiceSearchBtn.classList.remove('control-active');
+                        dom.searchInput.placeholder = 'Artists, Songs, Albums';
+                    };
+
+                    voiceSearch.recognition.onerror = (event) => {
+                        console.error('Speech recognition error:', event.error);
+                        if (event.error !== 'no-speech') {
+                            ui.showToast(`Voice search error: ${event.error}`);
+                        }
+                    };
+
+                    dom.voiceSearchBtn.addEventListener('click', () => {
+                        if (state.isListening) {
+                            voiceSearch.recognition.stop();
+                        } else {
+                            try {
+                                voiceSearch.recognition.start();
+                            } catch (e) {
+                                console.error("Could not start recognition:", e);
+                                ui.showToast("Voice search could not be started.");
+                            }
+                        }
+                    });
+                }
             };
             
             function init() {
                 dom.homeBtn.addEventListener('click', (e) => { e.preventDefault(); navigation.goHome(); });
-                const homeBtnMobile = document.getElementById('home-btn-mobile');
-                if(homeBtnMobile) homeBtnMobile.addEventListener('click', (e) => { e.preventDefault(); navigation.goHome(); });
-
+                
                 dom.mainContent.addEventListener('click', async (e) => {
                     const target = e.target;
                     const tabButton = target.closest('.tab-button');
@@ -467,34 +743,156 @@
 
                     const pageBtn = target.closest('[data-action="change-page"]'); if (pageBtn) { e.preventDefault(); const { query, page, category } = pageBtn.dataset; state.searchPage[category] = parseInt(page); let apiCall; switch (category) { case 'songs': apiCall = api.searchSongs(query, page); break; case 'albums': apiCall = api.searchAlbums(query, page); break; case 'artists': apiCall = api.searchArtists(query, page); break; } const newData = await apiCall; const panel = document.getElementById(`panel-${category}`); if(panel && newData?.data) { const renderer = category === 'songs' ? (state.songViewMode === 'list' ? ui.renderSongList : ui.renderSongGrid) : ui.renderGrid; panel.innerHTML = ui.renderPaginatedSection(category, newData.data, renderer, query, parseInt(page)); } return; }
                     const backBtn = target.closest('[data-action="go-back-to-search"]'); if (backBtn) { e.preventDefault(); navigation.goBackToSearch(); return; }
-                    const downloadBtn = target.closest('[data-action="download-song"]'); if(downloadBtn) { e.preventDefault(); try { const songObject = JSON.parse(downloadBtn.dataset.songJson); player.downloadSong(songObject); } catch (err) { console.error("Failed to parse song JSON for download", err); alert("Could not download song due to a data error."); } return; }
-                    const item = target.closest('[data-type][data-id]'); if (item) { e.preventDefault(); const { type, id } = item.dataset; if (!id || id === 'null') return; if (type === 'song') { player.playSong(id); } else { navigation.view(type, id); } }
+                    const downloadBtn = target.closest('[data-action="download-song"]'); if(downloadBtn) { e.preventDefault(); e.stopPropagation(); try { const songObject = JSON.parse(downloadBtn.dataset.songJson); player.downloadSong(songObject); } catch (err) { console.error("Failed to parse song JSON for download", err); ui.showToast("Could not download song due to a data error."); } return; }
+                    
+                    const item = target.closest('[data-type][data-id]'); 
+                    if (item) { 
+                        e.preventDefault(); 
+                        const { type, id } = item.dataset; 
+                        if (!id || id === 'null') return; 
+                        
+                        if (type === 'song') { 
+                            const songListContainer = item.closest('.space-y-1, .grid');
+                            if (songListContainer) {
+                                const songElements = Array.from(songListContainer.querySelectorAll('[data-song-json]'));
+                                state.currentPlaylist = songElements.map(el => {
+                                    try {
+                                        return JSON.parse(el.dataset.songJson);
+                                    } catch (err) {
+                                        console.error("Failed to parse song JSON from element:", el, err);
+                                        return null;
+                                    }
+                                }).filter(Boolean);
+                            } else {
+                                state.currentPlaylist = [];
+                            }
+                            player.playSong(id); 
+                        } else { 
+                            navigation.view(type, id); 
+                        } 
+                    }
                 });
+
                 dom.searchInput.addEventListener('keyup', (e) => { clearTimeout(state.debounceTimer); const query = e.target.value.trim(); if (e.key === 'Enter' && query) { navigation.view('search', query); } else { state.debounceTimer = setTimeout(() => { if (query && query !== state.lastSearchQuery) { navigation.view('search', query); } else if (!query) { navigation.goHome(); } }, 400); } });
-                dom.playPauseButton.addEventListener('click', () => dom.audioPlayer.paused ? dom.audioPlayer.play() : dom.audioPlayer.pause());
-                dom.audioPlayer.addEventListener('play', () => dom.playPauseIcon.className = 'fa-solid fa-pause fa-xl');
-                dom.audioPlayer.addEventListener('pause', () => dom.playPauseIcon.className = 'fa-solid fa-play fa-xl ml-1');
+                
+                // Audio Player Events
+                dom.audioPlayer.addEventListener('play', player.updateAllControlsUI);
+                dom.audioPlayer.addEventListener('pause', player.updateAllControlsUI);
                 dom.audioPlayer.addEventListener('ended', player.handleSongEnd);
-                dom.audioPlayer.addEventListener('timeupdate', () => { const { currentTime, duration } = dom.audioPlayer; if (isNaN(duration)) return; dom.progressBar.value = currentTime; dom.currentTimeEl.textContent = util.formatTime(currentTime) || '0:00'; dom.progressBar.style.setProperty('--progress-percent', `${(currentTime / duration) * 100}%`); if(dom.bodyEl.classList.contains('lyrics-view-active')) player.updateSyncedLyrics(currentTime); });
-                dom.audioPlayer.addEventListener('loadedmetadata', () => { dom.progressBar.max = dom.audioPlayer.duration; dom.totalTimeEl.textContent = util.formatTime(dom.audioPlayer.duration); });
-                dom.progressBar.addEventListener('input', (e) => dom.audioPlayer.currentTime = e.target.value);
+                dom.audioPlayer.addEventListener('timeupdate', () => { 
+                    const { currentTime, duration } = dom.audioPlayer; 
+                    if (isNaN(duration)) return; 
+                    const progressPercent = (currentTime / duration) * 100;
+                    const formattedCurrentTime = util.formatTime(currentTime);
+
+                    dom.progressBar.value = currentTime; 
+                    dom.lyricsProgressBar.value = currentTime;
+
+                    dom.currentTimeEl.textContent = formattedCurrentTime;
+                    dom.lyricsCurrentTimeEl.textContent = formattedCurrentTime;
+
+                    dom.progressBar.style.setProperty('--progress-percent', `${progressPercent}%`); 
+                    dom.lyricsProgressBar.style.setProperty('--progress-percent', `${progressPercent}%`); 
+
+                    if(dom.bodyEl.classList.contains('lyrics-view-active')) player.updateSyncedLyrics(currentTime); 
+                });
+                dom.audioPlayer.addEventListener('loadedmetadata', () => { 
+                    const duration = dom.audioPlayer.duration;
+                    const formattedTotalTime = util.formatTime(duration);
+                    dom.progressBar.max = duration; 
+                    dom.lyricsProgressBar.max = duration;
+                    dom.totalTimeEl.textContent = formattedTotalTime; 
+                    dom.lyricsTotalTimeEl.textContent = formattedTotalTime;
+                });
+
+                // Shared Player Control Logic
+                const togglePlayPause = () => dom.audioPlayer.paused ? dom.audioPlayer.play() : dom.audioPlayer.pause();
+                const seek = (e) => dom.audioPlayer.currentTime = e.target.value;
+                const toggleShuffle = () => { state.isShuffleOn = !state.isShuffleOn; player.updateAllControlsUI(); };
+                const toggleRepeat = () => { const modes = ['none', 'all', 'one']; const currentModeIndex = modes.indexOf(state.repeatMode); state.repeatMode = modes[(currentModeIndex + 1) % modes.length]; player.updateAllControlsUI(); };
+
+                // Main Player Bar Controls
+                dom.playPauseButton.addEventListener('click', togglePlayPause);
+                dom.progressBar.addEventListener('input', seek);
                 dom.nextButton.addEventListener('click', player.playNextSong);
                 dom.prevButton.addEventListener('click', player.playPrevSong);
-                dom.shuffleBtn.addEventListener('click', () => { state.isShuffleOn = !state.isShuffleOn; dom.shuffleBtn.classList.toggle('control-active', state.isShuffleOn); dom.shuffleBtn.title = state.isShuffleOn ? 'Shuffle On' : 'Shuffle Off'; });
-                dom.repeatBtn.addEventListener('click', () => { const modes = ['none', 'all', 'one']; const currentModeIndex = modes.indexOf(state.repeatMode); state.repeatMode = modes[(currentModeIndex + 1) % modes.length]; dom.repeatBtn.classList.toggle('control-active', state.repeatMode !== 'none'); dom.repeatIcon.className = 'fa-solid fa-lg ' + (state.repeatMode === 'one' ? 'fa-1' : 'fa-repeat'); if (state.repeatMode === 'one') dom.repeatBtn.title = 'Repeat One'; else dom.repeatBtn.title = state.repeatMode === 'all' ? 'Repeat All' : 'Repeat Off'; });
+                dom.shuffleBtn.addEventListener('click', toggleShuffle);
+                dom.repeatBtn.addEventListener('click', toggleRepeat);
+                
+                // Lyrics View Controls
+                dom.lyricsPlayPauseButton.addEventListener('click', togglePlayPause);
+                dom.lyricsProgressBar.addEventListener('input', seek);
+                dom.lyricsNextButton.addEventListener('click', player.playNextSong);
+                dom.lyricsPrevButton.addEventListener('click', player.playPrevSong);
+                dom.lyricsShuffleBtn.addEventListener('click', toggleShuffle);
+                dom.lyricsRepeatBtn.addEventListener('click', toggleRepeat);
+                
+                // Pitch Controls (shared logic)
                 dom.audioPlayer.preservesPitch = false;
-                dom.pitchSlider.addEventListener('input', e => { const rate = parseFloat(e.target.value); dom.audioPlayer.playbackRate = rate; dom.pitchValue.textContent = `${rate.toFixed(2)}x`; dom.pitchBtn.classList.toggle('control-active', rate !== 1.0); });
-                dom.pitchResetBtn.addEventListener('click', () => { dom.pitchSlider.value = 1; dom.audioPlayer.playbackRate = 1; dom.pitchValue.textContent = '1.00x'; dom.pitchBtn.classList.remove('control-active'); });
-                dom.volumeControlWrapper.addEventListener('wheel', e => { e.preventDefault(); let currentVolume = dom.audioPlayer.volume; if (e.deltaY < 0) { currentVolume = Math.min(1, currentVolume + 0.05); } else { currentVolume = Math.max(0, currentVolume - 0.05); } player.setVolume(currentVolume); }, { passive: false });
-                dom.volumeBar.addEventListener('click', e => { const rect = dom.volumeBar.getBoundingClientRect(); player.setVolume((rect.bottom - e.clientY) / rect.height); });
-                dom.volumeIcon.parentElement.addEventListener('click', (e) => { if(e.target.closest('.vertical-slider-container')) return; player.setVolume(dom.audioPlayer.volume > 0 ? 0 : parseFloat(localStorage.getItem('musicPlayerVolume')) || 1); });
+                const handlePitchChange = (rate) => {
+                    dom.audioPlayer.playbackRate = rate;
+                    const formattedRate = `${rate.toFixed(2)}x`;
+                    dom.pitchValue.textContent = formattedRate;
+                    dom.lyricsPitchValue.textContent = formattedRate;
+                    const isActive = rate !== 1.0;
+                    dom.pitchBtn.classList.toggle('control-active', isActive);
+                    dom.lyricsPitchBtn.classList.toggle('control-active', isActive);
+                };
+                const resetPitch = () => {
+                    dom.pitchSlider.value = 1;
+                    dom.lyricsPitchSlider.value = 1;
+                    handlePitchChange(1);
+                };
+                dom.pitchSlider.addEventListener('input', e => handlePitchChange(parseFloat(e.target.value)));
+                dom.lyricsPitchSlider.addEventListener('input', e => handlePitchChange(parseFloat(e.target.value)));
+                dom.pitchResetBtn.addEventListener('click', resetPitch);
+                dom.lyricsPitchResetBtn.addEventListener('click', resetPitch);
+
+                // Enhanced Slider Hover Logic
+                const initSliderHover = (wrapper) => {
+                    if (!wrapper) return; // Graceful exit if element doesn't exist
+                    let hideTimeout;
+                    wrapper.addEventListener('mouseenter', () => {
+                        clearTimeout(hideTimeout);
+                        wrapper.classList.add('slider-active');
+                    });
+                    wrapper.addEventListener('mouseleave', () => {
+                        hideTimeout = setTimeout(() => {
+                            wrapper.classList.remove('slider-active');
+                        }, 300);
+                    });
+                };
+
+                initSliderHover(dom.volumeControlWrapper);
+                initSliderHover(dom.pitchControlWrapper);
+                initSliderHover(dom.lyricsVolumeControlWrapper);
+                initSliderHover(dom.lyricsPitchControlWrapper);
+
+                // Volume Controls (shared logic)
+                const handleVolumeBarClick = (e, bar) => { const rect = bar.getBoundingClientRect(); player.setVolume((rect.bottom - e.clientY) / rect.height); };
+                const toggleMute = () => player.setVolume(dom.audioPlayer.volume > 0 ? 0 : parseFloat(localStorage.getItem('musicPlayerVolume')) || 1);
+                const handleWheel = (e) => { e.preventDefault(); let currentVolume = dom.audioPlayer.volume; if (e.deltaY < 0) { currentVolume = Math.min(1, currentVolume + 0.05); } else { currentVolume = Math.max(0, currentVolume - 0.05); } player.setVolume(currentVolume); };
+                
+                dom.volumeBar.addEventListener('click', e => handleVolumeBarClick(e, dom.volumeBar));
+                dom.lyricsVolumeBar.addEventListener('click', e => handleVolumeBarClick(e, dom.lyricsVolumeBar));
+                dom.volumeIcon.parentElement.addEventListener('click', (e) => { if(!e.target.closest('.vertical-slider-container')) toggleMute(); });
+                dom.lyricsVolumeIcon.parentElement.addEventListener('click', (e) => { if(!e.target.closest('.vertical-slider-container')) toggleMute(); });
+                dom.volumeControlWrapper.addEventListener('wheel', handleWheel, { passive: false });
+                dom.lyricsVolumeControlWrapper.addEventListener('wheel', handleWheel, { passive: false });
+                
+                // Lyrics View Management
                 dom.lyricsBtn.addEventListener('click', () => { if (state.currentSongData) { dom.bodyEl.classList.add('lyrics-view-active'); player.fetchAndRenderLyrics(state.currentSongData); } });
                 dom.lyricsViewCloseBtn.addEventListener('click', () => dom.bodyEl.classList.remove('lyrics-view-active'));
                 dom.lyricsContainer.addEventListener('click', (e) => { const line = e.target.closest('.lyrics-line[data-time]'); if (line) dom.audioPlayer.currentTime = parseFloat(line.dataset.time); });
+                
+                // Initial Setup
                 ui.renderInitialView();
+                voiceSearch.init();
                 const savedVolume = localStorage.getItem('musicPlayerVolume');
                 player.setVolume(savedVolume ? parseFloat(savedVolume) : 1);
                 dom.progressBar.style.setProperty('--progress-color', 'var(--text-primary)');
+                dom.lyricsProgressBar.style.setProperty('--progress-color', 'var(--text-primary)');
+                player.updateAllControlsUI();
             }
             init();
         });
