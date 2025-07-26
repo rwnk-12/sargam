@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Srgam</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Local Stylesheet -->
+    <link rel="stylesheet" href="/css/styles.css">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'] },
+                    colors: {
+                        'music-bg-base': '#09090b',
+                        'music-bg-elevated': '#1c1c1e',
+                        'music-bg-hover': '#27272a',
+                        'music-bg-card': '#18181b',
+                        'music-border': '#27272a',
+                        'music-text-primary': '#fafafa',
+                        'music-text-secondary': '#a1a1aa',
+                        'music-accent': '#f5596d',
+                        'music-accent-hover': '#f5596d',
+                        'music-ring': '#f5596d',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-music-text-primary">
+    
+    <div id="app-wrapper" class="flex h-screen">
+        <aside id="sidebar" class="w-64 bg-black flex-shrink-0 p-6 flex flex-col border-r border-music-border z-20">
+            <div class="flex items-center gap-3 text-music-accent mb-8">
+                <i class="fa-solid fa-compact-disc fa-2x fa-spin-pulse" style="--fa-animation-duration: 5s;"></i>
+                <span class="font-bold text-xl tracking-tighter">Srgam</span>
+            </div>
+            <div class="relative w-full">
+                <i class="fa-solid fa-magnifying-glass h-4 w-4 absolute top-1/2 left-3 -translate-y-1/2 text-music-text-secondary"></i>
+                <input id="search-input" type="search" placeholder="Artists, Songs, Albums" class="w-full bg-music-bg-elevated border border-music-border rounded-md py-2 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-music-ring transition-all" />
+                <button id="voice-search-btn" class="absolute top-1/2 right-3 -translate-y-1/2 text-music-text-secondary hover:text-white transition-colors" title="Search with your voice">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+            </div>
+            <nav class="mt-6">
+                <ul class="space-y-2">
+                    <li><a href="#" id="home-btn" class="flex items-center gap-4 text-base font-medium hover:text-white transition-colors text-music-text-secondary px-3 py-2 rounded-md hover:bg-music-bg-hover"><i class="fa-solid fa-home w-5 text-center"></i><span>Home</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main id="main-content" class="flex-1 bg-music-bg-base p-8 overflow-y-auto">
+            <div id="content-container"></div>
+            <div id="suggestions-container" class="mt-12"></div>
+        </main>
+    </div>
+
+    <!-- DESKTOP PLAYER BAR -->
+    <footer id="player-bar" class="fixed bottom-0 left-0 w-full bg-music-bg-elevated border-t border-music-border h-[var(--player-height)] px-4 flex items-center justify-between gap-6 z-30">
+        <div class="w-1/4 flex items-center justify-start gap-3 min-w-0">
+            <img id="player-art" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Album Art" class="w-14 h-14 rounded-md bg-music-bg-hover" crossorigin="anonymous">
+            <div class="min-w-0">
+                <h4 id="player-title" class="font-medium truncate text-sm text-music-text-primary">Not Playing</h4>
+                <div id="player-artist" class="text-xs text-music-text-secondary truncate">...</div>
+            </div>
+        </div>
+        <div class="w-1/2 flex flex-col items-center justify-center gap-2 max-w-2xl">
+             <div class="flex items-center justify-center gap-5">
+                <button id="shuffle-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Shuffle Off"><i class="fa-solid fa-shuffle text-base"></i></button>
+                <button id="prev-button" class="player-button text-music-text-secondary hover:text-white transition-colors"><i class="fa-solid fa-backward-step fa-lg"></i></button>
+                <button id="play-pause-button" class="p-2 rounded-full w-10 h-10 flex items-center justify-center transition-all"><i id="play-pause-icon" class="fa-solid fa-play fa-lg ml-0.5"></i></button>
+                <button id="next-button" class="player-button text-music-text-secondary hover:text-white transition-colors"><i class="fa-solid fa-forward-step fa-lg"></i></button>
+                <button id="repeat-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Repeat Off"><i id="repeat-icon" class="fa-solid fa-repeat text-base"></i></button>
+                <button id="autocontinue-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Auto-Continue On"><i class="fa-solid fa-infinity"></i></button>
+            </div>
+            <div class="w-full flex items-center gap-3 text-xs text-music-text-secondary control-slider-wrapper">
+                <span id="current-time" class="w-10 text-right">0:00</span>
+                <input id="progress-bar" type="range" min="0" max="100" value="0" class="control-slider flex-grow">
+                <span id="total-time" class="w-10 text-left">0:00</span>
+            </div>
+        </div>
+        <div class="w-1/4 flex items-center justify-end gap-3">
+            <div id="pitch-control-wrapper" class="control-wrapper relative flex items-center">
+                <button id="pitch-btn" class="player-button text-music-text-secondary hover:text-white transition-colors font-semibold text-xs w-16 text-center" title="Adjust Speed/Pitch"><span class="tracking-wider">SPEED</span></button>
+                <div class="vertical-slider-container">
+                    <span id="pitch-value" class="font-bold text-base text-white">1.00x</span>
+                    <input id="pitch-slider" type="range" min="0.5" max="2.0" step="0.01" value="1">
+                    <button id="pitch-reset-btn">Reset</button>
+                </div>
+            </div>
+            <div id="volume-control-wrapper" class="control-wrapper relative flex items-center">
+                <button id="volume-icon-btn" class="player-button text-music-text-secondary hover:text-white"><i id="volume-icon" class="fa-solid fa-volume-high"></i></button>
+                <div class="vertical-slider-container">
+                    <div id="volume-bar" class="vertical-slider-bar"><div id="volume-level" class="vertical-slider-level" style="height: 100%;"></div></div>
+                </div>
+            </div>
+            <button id="view-playlist-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="View Queue" disabled><i class="fa-solid fa-list-ol"></i></button>
+            <button id="lyrics-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Show Lyrics" disabled><i class="fa-solid fa-microphone-lines"></i></button>
+        </div>
+    </footer>
+
+    <!-- MOBILE PLAYER -->
+    <div id="mobile-player-container">
+        <div id="mobile-mini-player">
+            <img id="mobile-mini-player-art" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Album Art">
+            <div id="mobile-mini-player-info">
+                <div id="mobile-mini-player-title">Not Playing</div>
+                <div id="mobile-mini-player-artist">...</div>
+            </div>
+            <div id="mobile-mini-player-controls">
+                <button id="mobile-mini-player-play-pause"><i id="mobile-mini-player-play-pause-icon" class="fa-solid fa-play"></i></button>
+            </div>
+            <div id="mobile-mini-player-progress-bar"><div id="mobile-mini-player-progress"></div></div>
+        </div>
+
+        <div id="mobile-full-player">
+            <div id="mobile-full-player-bg"><img id="mobile-full-player-bg-image" src="" alt=""></div>
+            <header id="mobile-full-player-header">
+                <button id="mobile-full-player-minimize" class="mobile-player-btn"><i class="fa-solid fa-chevron-down"></i></button>
+                <button id="mobile-full-player-more" class="mobile-player-btn"><i class="fa-solid fa-ellipsis-h"></i></button>
+            </header>
+            <main id="mobile-full-player-content">
+                <img id="mobile-full-player-art" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Album Art">
+                <div id="mobile-full-player-info-wrapper">
+                    <div id="mobile-full-player-info">
+                        <div id="mobile-full-player-text">
+                            <div id="mobile-full-player-title-wrapper">
+                                <h2 id="mobile-full-player-title">Song Title</h2>
+                            </div>
+                            <h3 id="mobile-full-player-artist">Artist Name</h3>
+                        </div>
+                    </div>
+                    <div id="mobile-full-player-footer">
+                        <div class="mobile-progress-wrapper">
+                            <input id="mobile-full-player-progress-bar" type="range" min="0" max="100" value="0">
+                            <div class="mobile-time-labels">
+                                <span id="mobile-full-player-current-time">0:00</span>
+                                <span id="mobile-full-player-total-time">0:00</span>
+                            </div>
+                        </div>
+                        <div class="mobile-controls">
+                            <button id="mobile-full-player-repeat" class="mobile-player-btn side-control"><i id="mobile-full-player-repeat-icon" class="fa-solid fa-repeat"></i></button>
+                            <button id="mobile-full-player-prev" class="mobile-player-btn"><i class="fa-solid fa-backward-step"></i></button>
+                            <button id="mobile-full-player-play-pause"><i id="mobile-full-player-play-pause-icon" class="fa-solid fa-play ml-1"></i></button>
+                            <button id="mobile-full-player-next" class="mobile-player-btn"><i class="fa-solid fa-forward-step"></i></button>
+                            <button id="mobile-full-player-playlist" class="mobile-player-btn side-control"><i class="fa-solid fa-list-ol"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <div id="mobile-pitch-modal">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-lg">Playback Speed</h3>
+                <span id="mobile-pitch-value" class="font-bold text-base text-white bg-music-bg-hover px-3 py-1 rounded-md">1.00x</span>
+            </div>
+            <input id="mobile-pitch-slider" type="range" min="0.5" max="2.0" step="0.01" value="1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer" style="accent-color: var(--accent-color);">
+            <div class="flex justify-between text-xs text-music-text-secondary mt-2">
+                <span>0.5x</span>
+                <span>1.0x</span>
+                <span>2.0x</span>
+            </div>
+            <button id="mobile-pitch-reset-btn" class="w-full mt-4 bg-music-bg-hover text-white py-2.5 rounded-lg font-semibold">Reset Speed</button>
+        </div>
+        
+        <div id="mobile-more-options-modal">
+            <div id="mobile-more-options-content" class="space-y-3">
+                 <button id="mobile-more-options-shuffle" class="more-options-btn"><i class="fa-solid fa-shuffle"></i><span>Shuffle</span></button>
+                <button id="mobile-more-options-speed" class="more-options-btn"><i class="fa-solid fa-gauge-high"></i><span>Playback Speed</span></button>
+                <button id="mobile-more-options-lyrics" class="more-options-btn"><i class="fa-solid fa-microphone-lines"></i><span>View Lyrics</span></button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="lyrics-view" class="h-screen w-screen fixed top-0 left-0 z-50">
+        <div id="lyrics-background"><img id="lyrics-bg-image" src="" alt="" class="lyrics-bg-image" crossorigin="anonymous"/></div>
+        
+        <header id="desktop-lyrics-header">
+            <button id="desktop-lyrics-view-close-btn" class="text-gray-400 hover:text-white transition-colors text-5xl leading-none">&times;</button>
+        </header>
+        
+        <header id="mobile-lyrics-header">
+            <div id="lyrics-header-song-info">
+                <img id="lyrics-header-art" src="" alt="Album Art">
+                <div id="lyrics-header-text">
+                    <div id="lyrics-header-title-wrapper">
+                        <span id="lyrics-header-title"></span>
+                    </div>
+                    <div id="lyrics-header-artist"></div>
+                </div>
+            </div>
+            <button id="mobile-lyrics-view-close-btn" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+        </header>
+        
+        <div id="lyrics-content" class="gap-16">
+            <div id="lyrics-meta-column">
+                <img id="lyrics-view-art" src="" alt="Album Art" class="w-full max-w-sm rounded-lg shadow-2xl aspect-square" crossorigin="anonymous">
+                <h2 id="lyrics-view-title" class="text-4xl font-bold mt-6">Song Title</h2>
+                <div id="lyrics-view-artist" class="text-2xl text-music-text-secondary/90 mt-1">Artist Name</div>
+                <div id="lyrics-view-meta" class="text-sm text-music-text-secondary/80 mt-4 space-y-1 font-normal"></div>
+            </div>
+            <div id="lyrics-container-wrapper">
+                <div id="lyrics-container"><p class="lyrics-status">Lyrics will appear here.</p></div>
+            </div>
+        </div>
+
+        <div id="lyrics-controls" class="flex items-center justify-between gap-6">
+            <div class="w-1/4 flex items-center justify-center gap-5">
+                <button id="lyrics-prev-button" class="player-button text-music-text-secondary hover:text-white transition-colors"><i class="fa-solid fa-backward-step fa-lg"></i></button>
+                <button id="lyrics-play-pause-button" class="p-2 rounded-full w-10 h-10 flex items-center justify-center transition-all"><i id="lyrics-play-pause-icon" class="fa-solid fa-play fa-lg ml-0.5"></i></button>
+                <button id="lyrics-next-button" class="player-button text-music-text-secondary hover:text-white transition-colors"><i class="fa-solid fa-forward-step fa-lg"></i></button>
+            </div>
+            <div class="w-1/2 flex-grow flex items-center gap-3 text-xs text-music-text-secondary control-slider-wrapper">
+                <span id="lyrics-current-time" class="w-10 text-right">0:00</span>
+                <input id="lyrics-progress-bar" type="range" min="0" max="100" value="0" class="control-slider flex-grow">
+                <span id="lyrics-total-time" class="w-10 text-left">0:00</span>
+            </div>
+            <div class="w-1/4 flex items-center justify-center gap-4">
+                <div id="lyrics-pitch-control-wrapper" class="control-wrapper relative flex items-center">
+                    <button id="lyrics-pitch-btn" class="player-button text-music-text-secondary hover:text-white transition-colors font-semibold text-xs w-16 text-center" title="Adjust Speed/Pitch"><span class="tracking-wider">SPEED</span></button>
+                    <div class="vertical-slider-container">
+                        <span id="lyrics-pitch-value" class="font-bold text-base text-white">1.00x</span>
+                        <input id="lyrics-pitch-slider" type="range" min="0.5" max="2.0" step="0.01" value="1">
+                        <button id="lyrics-pitch-reset-btn">Reset</button>
+                    </div>
+                </div>
+                <button id="lyrics-shuffle-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Shuffle Off"><i class="fa-solid fa-shuffle text-base"></i></button>
+                <button id="lyrics-repeat-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Repeat Off"><i id="lyrics-repeat-icon" class="fa-solid fa-repeat text-base"></i></button>
+                <button id="lyrics-autocontinue-btn" class="player-button text-music-text-secondary hover:text-white transition-colors" title="Auto-Continue On"><i class="fa-solid fa-infinity"></i></button>
+                <div id="lyrics-volume-control-wrapper" class="control-wrapper relative flex items-center">
+                    <button id="lyrics-volume-icon-btn" class="player-button text-music-text-secondary hover:text-white"><i id="lyrics-volume-icon" class="fa-solid fa-volume-high"></i></button>
+                    <div class="vertical-slider-container">
+                        <div id="lyrics-volume-bar" class="vertical-slider-bar"><div id="lyrics-volume-level" class="vertical-slider-level" style="height: 100%;"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="playlist-modal">
+        <div id="playlist-modal-content">
+            <div class="flex justify-between items-center p-4 border-b border-music-border">
+                <h2 class="text-lg font-bold">Up Next</h2>
+                <button id="playlist-modal-close-btn" class="text-music-text-secondary hover:text-white text-2xl">&times;</button>
+            </div>
+            <div id="playlist-modal-body"></div>
+        </div>
+    </div>
+
+    <div id="toast-notification" class="fixed bottom-24 right-6 text-white py-3 px-6 rounded-lg shadow-lg text-sm font-semibold opacity-0 translate-y-4 transition-all duration-300 z-50" style="background: var(--accent-gradient);">
+        Toast message
+    </div>
+
+    <audio id="audio-player" class="hidden"></audio>
+
+    <!-- Main application script, loaded as a module -->
+    <script type="module" src="/js/main.js"></script>
+</body>
+</html>
