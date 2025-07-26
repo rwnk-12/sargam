@@ -173,13 +173,17 @@
             .mobile-controls .mobile-player-btn { font-size: 28px; color: var(--text-primary); }
             .mobile-controls .mobile-player-btn.side-control { font-size: 22px; }
             .mobile-player-btn.control-active { color: var(--accent-color); }
-            #mobile-secondary-controls { display: none; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
-            #mobile-secondary-controls.active { display: flex; }
-            #mobile-secondary-controls .mobile-player-btn { font-size: 20px; color: var(--text-secondary); }
+            
+            #mobile-more-options-modal { position: fixed; inset: 0; z-index: 1100; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; }
+            #mobile-more-options-modal.active { opacity: 1; visibility: visible; }
+            #mobile-more-options-content { position: absolute; bottom: 0; left: 0; right: 0; background-color: var(--bg-elevated); border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 1rem 1.5rem; padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+            #mobile-more-options-modal.active #mobile-more-options-content { transform: translateY(0); }
+            .more-options-btn { background: var(--bg-hover); color: var(--text-primary); border: none; width: 100%; padding: 1rem; border-radius: 12px; font-size: 1rem; font-weight: 500; text-align: left; display: flex; align-items: center; gap: 1rem; }
+            .more-options-btn i { width: 20px; text-align: center; }
 
-            #mobile-pitch-modal { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--bg-elevated); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1100; padding: 1.5rem; padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0,0,0,0.4); transform: translateY(100%); transition: transform 0.3s ease-out, visibility 0.3s; visibility: hidden; }
+            #mobile-pitch-modal { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--bg-elevated); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 1200; padding: 1.5rem; padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0,0,0,0.4); transform: translateY(100%); transition: transform 0.3s ease-out, visibility 0.3s; visibility: hidden; }
             #mobile-pitch-modal.active { transform: translateY(0); visibility: visible; }
-            #mobile-pitch-modal .flex.justify-between.text-xs { padding: 0 5px; /* Align labels with slider track */ }
+            #mobile-pitch-modal .flex.justify-between.text-xs { padding: 0 5px; }
             
             #desktop-lyrics-header { display: none; }
             #mobile-lyrics-header { display: flex; }
@@ -327,18 +331,11 @@
                             </div>
                         </div>
                         <div class="mobile-controls">
-                            <button id="mobile-full-player-shuffle" class="mobile-player-btn side-control"><i class="fa-solid fa-shuffle"></i></button>
+                            <button id="mobile-full-player-repeat" class="mobile-player-btn side-control"><i id="mobile-full-player-repeat-icon" class="fa-solid fa-repeat"></i></button>
                             <button id="mobile-full-player-prev" class="mobile-player-btn"><i class="fa-solid fa-backward-step"></i></button>
                             <button id="mobile-full-player-play-pause"><i id="mobile-full-player-play-pause-icon" class="fa-solid fa-play ml-1"></i></button>
                             <button id="mobile-full-player-next" class="mobile-player-btn"><i class="fa-solid fa-forward-step"></i></button>
                             <button id="mobile-full-player-playlist" class="mobile-player-btn side-control"><i class="fa-solid fa-list-ol"></i></button>
-                        </div>
-                        <div id="mobile-secondary-controls">
-                            <button id="mobile-full-player-speed" class="mobile-player-btn"><i class="fa-solid fa-gauge-high"></i></button>
-                            <div class="w-12"></div> <!-- Spacer -->
-                            <button id="mobile-full-player-repeat" class="mobile-player-btn"><i id="mobile-full-player-repeat-icon" class="fa-solid fa-repeat"></i></button>
-                            <div class="w-12"></div> <!-- Spacer -->
-                            <button id="mobile-full-player-lyrics" class="mobile-player-btn"><i class="fa-solid fa-microphone-lines"></i></button>
                         </div>
                     </div>
                 </div>
@@ -351,12 +348,20 @@
                 <span id="mobile-pitch-value" class="font-bold text-base text-white bg-music-bg-hover px-3 py-1 rounded-md">1.00x</span>
             </div>
             <input id="mobile-pitch-slider" type="range" min="0.5" max="2.0" step="0.01" value="1" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer" style="accent-color: var(--accent-color);">
-            <div class="flex justify-between text-xs text-music-text-secondary mt-2 px-1">
+            <div class="flex justify-between text-xs text-music-text-secondary mt-2">
                 <span>0.5x</span>
                 <span>1.0x</span>
                 <span>2.0x</span>
             </div>
             <button id="mobile-pitch-reset-btn" class="w-full mt-4 bg-music-bg-hover text-white py-2.5 rounded-lg font-semibold">Reset Speed</button>
+        </div>
+        
+        <div id="mobile-more-options-modal">
+            <div id="mobile-more-options-content" class="space-y-3">
+                 <button id="mobile-more-options-shuffle" class="more-options-btn"><i class="fa-solid fa-shuffle"></i><span>Shuffle</span></button>
+                <button id="mobile-more-options-speed" class="more-options-btn"><i class="fa-solid fa-gauge-high"></i><span>Playback Speed</span></button>
+                <button id="mobile-more-options-lyrics" class="more-options-btn"><i class="fa-solid fa-microphone-lines"></i><span>View Lyrics</span></button>
+            </div>
         </div>
     </div>
     
@@ -530,7 +535,7 @@
                 mobileFullPlayerBgImage: document.getElementById('mobile-full-player-bg-image'),
                 mobileFullPlayerMinimize: document.getElementById('mobile-full-player-minimize'),
                 mobileFullPlayerMore: document.getElementById('mobile-full-player-more'),
-                mobileFullPlayerLyrics: document.getElementById('mobile-full-player-lyrics'),
+                mobileFullPlayerLyrics: document.getElementById('mobile-more-options-lyrics'),
                 mobileFullPlayerArt: document.getElementById('mobile-full-player-art'),
                 mobileFullPlayerTitleWrapper: document.getElementById('mobile-full-player-title-wrapper'),
                 mobileFullPlayerTitle: document.getElementById('mobile-full-player-title'),
@@ -538,7 +543,7 @@
                 mobileFullPlayerProgressBar: document.getElementById('mobile-full-player-progress-bar'),
                 mobileFullPlayerCurrentTime: document.getElementById('mobile-full-player-current-time'),
                 mobileFullPlayerTotalTime: document.getElementById('mobile-full-player-total-time'),
-                mobileFullPlayerShuffle: document.getElementById('mobile-full-player-shuffle'),
+                mobileFullPlayerShuffle: document.getElementById('mobile-more-options-shuffle'),
                 mobileFullPlayerPrev: document.getElementById('mobile-full-player-prev'),
                 mobileFullPlayerPlayPause: document.getElementById('mobile-full-player-play-pause'),
                 mobileFullPlayerPlayPauseIcon: document.getElementById('mobile-full-player-play-pause-icon'),
@@ -546,12 +551,12 @@
                 mobileFullPlayerRepeat: document.getElementById('mobile-full-player-repeat'),
                 mobileFullPlayerRepeatIcon: document.getElementById('mobile-full-player-repeat-icon'),
                 mobileFullPlayerPlaylist: document.getElementById('mobile-full-player-playlist'),
-                mobileFullPlayerSpeed: document.getElementById('mobile-full-player-speed'),
-                mobileSecondaryControls: document.getElementById('mobile-secondary-controls'),
+                mobileFullPlayerSpeed: document.getElementById('mobile-more-options-speed'),
                 mobilePitchModal: document.getElementById('mobile-pitch-modal'),
                 mobilePitchSlider: document.getElementById('mobile-pitch-slider'),
                 mobilePitchValue: document.getElementById('mobile-pitch-value'),
                 mobilePitchResetBtn: document.getElementById('mobile-pitch-reset-btn'),
+                mobileMoreOptionsModal: document.getElementById('mobile-more-options-modal'),
             };
 
             const state = {
@@ -797,10 +802,12 @@
 
             const mobilePlayer = {
                 openFullPlayer: () => { if (state.currentSongData) { dom.bodyEl.classList.add('full-player-active'); ui.updateTitleAnimation(dom.mobileFullPlayerTitle, dom.mobileFullPlayerTitleWrapper); } },
-                closeFullPlayer: () => { dom.bodyEl.classList.remove('full-player-active'); mobilePlayer.closePitchModal(); dom.mobileSecondaryControls.classList.remove('active'); },
+                closeFullPlayer: () => { dom.bodyEl.classList.remove('full-player-active'); mobilePlayer.closePitchModal(); mobilePlayer.closeMoreOptionsMenu(); },
+                openLyricsView: () => { if (state.currentSongData) { dom.bodyEl.classList.add('lyrics-view-active'); player.fetchAndRenderLyrics(state.currentSongData); mobilePlayer.closeFullPlayer(); showLyricsControls(); ui.updateTitleAnimation(dom.lyricsHeaderTitle, dom.lyricsHeaderTitleWrapper); } },
                 togglePitchModal: () => { dom.mobilePitchModal.classList.toggle('active'); },
                 closePitchModal: () => { dom.mobilePitchModal.classList.remove('active'); },
-                toggleSecondaryControls: () => { dom.mobileSecondaryControls.classList.toggle('active'); },
+                toggleMoreOptionsMenu: () => { dom.mobileMoreOptionsModal.classList.toggle('active'); },
+                closeMoreOptionsMenu: () => { dom.mobileMoreOptionsModal.classList.remove('active'); },
                 handleTouchStart: (e) => { if(e.target.type === 'range') return; state.touchStartX = e.touches[0].clientX; state.touchStartY = e.touches[0].clientY; },
                 handleTouchMove: (e) => { if(e.target.type === 'range') return; state.touchEndX = e.touches[0].clientX; state.touchEndY = e.touches[0].clientY; },
                 handleTouchEnd: () => {
@@ -808,7 +815,10 @@
                     const dx = state.touchEndX - state.touchStartX;
                     const dy = state.touchEndY - state.touchStartY;
                     if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) { if (dy > 0) mobilePlayer.closeFullPlayer(); } 
-                    else if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) { if (dx > 0) player.playPrevSong(); else player.playNextSong(); }
+                    else if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) { 
+                        if (dx < -50) { mobilePlayer.openLyricsView(); }
+                        else if (dx > 50) { player.playPrevSong(); }
+                    }
                     state.touchStartX = 0; state.touchEndX = 0; state.touchStartY = 0; state.touchEndY = 0;
                 }
             };
@@ -833,6 +843,24 @@
             }
 
             function handleLyricsInteraction() { if (isLyricsImmersive) { showLyricsControls(); } }
+            
+            function handleLyricsTouch(e) {
+                if (e.type === 'touchstart') {
+                    state.touchStartX = e.touches[0].clientX;
+                    state.touchStartY = e.touches[0].clientY;
+                } else if (e.type === 'touchmove') {
+                    state.touchEndX = e.touches[0].clientX;
+                    state.touchEndY = e.touches[0].clientY;
+                } else if (e.type === 'touchend') {
+                    const dx = state.touchEndX - state.touchStartX;
+                    const dy = state.touchEndY - state.touchStartY;
+                    if (Math.abs(dx) > Math.abs(dy) && dx > 50) {
+                        closeLyricsView();
+                        mobilePlayer.openFullPlayer();
+                    }
+                    state.touchStartX = 0; state.touchEndX = 0; state.touchStartY = 0; state.touchEndY = 0;
+                }
+            }
 
             function init() {
                 dom.homeBtn.addEventListener('click', (e) => { e.preventDefault(); navigation.goHome(); });
@@ -922,13 +950,14 @@
                 
                 dom.mobileMiniPlayer.addEventListener('click', mobilePlayer.openFullPlayer);
                 dom.mobileFullPlayerMinimize.addEventListener('click', mobilePlayer.closeFullPlayer);
-                dom.mobileFullPlayerMore.addEventListener('click', mobilePlayer.toggleSecondaryControls);
-                dom.mobileFullPlayerLyrics.addEventListener('click', () => { if (state.currentSongData) { dom.bodyEl.classList.add('lyrics-view-active'); player.fetchAndRenderLyrics(state.currentSongData); mobilePlayer.closeFullPlayer(); showLyricsControls(); ui.updateTitleAnimation(dom.lyricsHeaderTitle, dom.lyricsHeaderTitleWrapper); }});
+                dom.mobileFullPlayerMore.addEventListener('click', mobilePlayer.toggleMoreOptionsMenu);
+                dom.mobileMoreOptionsModal.addEventListener('click', (e) => { if (e.target === dom.mobileMoreOptionsModal) mobilePlayer.closeMoreOptionsMenu(); });
+                dom.mobileFullPlayerLyrics.addEventListener('click', () => { mobilePlayer.openLyricsView(); mobilePlayer.closeMoreOptionsMenu(); });
+                dom.mobileFullPlayerSpeed.addEventListener('click', () => { mobilePlayer.togglePitchModal(); mobilePlayer.closeMoreOptionsMenu(); });
                 dom.mobileFullPlayerPlaylist.addEventListener('click', () => { if (state.currentPlaylist.length > 0) { dom.playlistModalBody.innerHTML = ui.renderSongList(state.currentPlaylist, true); player.updateActiveSongIndicator(); dom.playlistModal.classList.add('active'); mobilePlayer.closeFullPlayer(); } else { ui.showToast("No playlist is active."); } });
-                dom.mobileFullPlayerSpeed.addEventListener('click', mobilePlayer.togglePitchModal);
-                dom.mobileFullPlayerContent.addEventListener('touchstart', mobilePlayer.handleTouchStart, { passive: true });
-                dom.mobileFullPlayerContent.addEventListener('touchmove', mobilePlayer.handleTouchMove, { passive: true });
-                dom.mobileFullPlayerContent.addEventListener('touchend', mobilePlayer.handleTouchEnd, { passive: true });
+                dom.mobileFullPlayerArt.addEventListener('touchstart', mobilePlayer.handleTouchStart, { passive: true });
+                dom.mobileFullPlayerArt.addEventListener('touchmove', mobilePlayer.handleTouchMove, { passive: true });
+                dom.mobileFullPlayerArt.addEventListener('touchend', mobilePlayer.handleTouchEnd, { passive: true });
                 dom.mobileFullPlayer.addEventListener('click', (e) => { if (e.target === dom.mobileFullPlayer && dom.mobilePitchModal.classList.contains('active')) { mobilePlayer.closePitchModal(); } });
 
                 dom.audioPlayer.preservesPitch = false;
@@ -938,7 +967,7 @@
                     const formattedRate = `${parseFloat(rate).toFixed(2)}x`;
                     [dom.pitchValue, dom.lyricsPitchValue, dom.mobilePitchValue].forEach(el => el.textContent = formattedRate);
                     const isActive = parseFloat(rate) !== 1.0;
-                    [dom.pitchBtn, dom.lyricsPitchBtn, dom.mobileFullPlayerSpeed].forEach(el => el.classList.toggle('control-active', isActive));
+                    [dom.pitchBtn, dom.lyricsPitchBtn].forEach(el => el.classList.toggle('control-active', isActive));
                 };
                 const resetPitch = () => { [dom.pitchSlider, dom.lyricsPitchSlider, dom.mobilePitchSlider].forEach(s => s.value = 1); handlePitchChange(1); };
                 [dom.pitchSlider, dom.lyricsPitchSlider, dom.mobilePitchSlider].forEach(s => s.addEventListener('input', e => handlePitchChange(e.target.value)));
@@ -960,7 +989,9 @@
                 dom.lyricsContainer.addEventListener('click', (e) => { const line = e.target.closest('.lyrics-line[data-time]'); if (line) dom.audioPlayer.currentTime = parseFloat(line.dataset.time); });
                 dom.lyricsView.addEventListener('click', handleLyricsInteraction);
                 dom.lyricsView.addEventListener('mousemove', handleLyricsInteraction);
-                document.addEventListener('keydown', (e) => { if (dom.bodyEl.classList.contains('lyrics-view-active')) { handleLyricsInteraction(); } });
+                dom.lyricsView.addEventListener('touchstart', handleLyricsTouch, { passive: true });
+                dom.lyricsView.addEventListener('touchmove', handleLyricsTouch, { passive: true });
+                dom.lyricsView.addEventListener('touchend', handleLyricsTouch, { passive: true });
 
                 dom.viewPlaylistBtn.addEventListener('click', () => { if (state.currentPlaylist.length > 0) { dom.playlistModalBody.innerHTML = ui.renderSongList(state.currentPlaylist, true); player.updateActiveSongIndicator(); dom.playlistModal.classList.add('active'); } else { ui.showToast("No playlist is active."); } });
                 dom.playlistModalCloseBtn.addEventListener('click', () => dom.playlistModal.classList.remove('active'));
