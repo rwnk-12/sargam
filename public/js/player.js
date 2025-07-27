@@ -7,38 +7,26 @@ import { state } from './state.js';
 import { util } from './utils.js';
 import { api, lrcApi, lastFmApi } from './api.js';
 import { ui } from './ui.js';
+import { history } from './history.js'; // --- NEW --- Import the history module
 
 // --- INTERNAL HELPER FUNCTIONS ---
 
-/**
- * Converts TTML time format (MM:SS.mmm or SS.mmm) to seconds.
- * @param {string} timeString - The time string from the TTML file.
- * @returns {number} - The time in total seconds.
- */
 const _convertTtmlTimeToSeconds = (timeString) => {
     if (!timeString) return 0;
     const parts = timeString.split(':');
     let seconds = 0;
-    if (parts.length === 2) { // MM:SS.mmm format
+    if (parts.length === 2) {
         seconds += parseInt(parts[0], 10) * 60;
         seconds += parseFloat(parts[1]);
-    } else { // SS.mmm format
+    } else {
         seconds += parseFloat(parts[0]);
     }
     return seconds;
 };
 
-/**
- * --- NEW ---
- * Sanitizes a string for better API matching by removing hyphens and parenthetical text.
- * @param {string} text - The text to sanitize.
- * @returns {string} The sanitized text.
- */
 const _sanitizeForApi = (text) => {
     if (!text) return '';
-    // Replace hyphens with spaces, e.g., "Wake-Me-Up" -> "Wake Me Up"
     let sanitized = text.replace(/-/g, ' ');
-    // Remove parenthetical text, e.g., "Song (From Movie)" -> "Song"
     sanitized = sanitized.replace(/\s*\(.*\)\s*$/, '').trim();
     return sanitized;
 };
@@ -48,14 +36,8 @@ const recsEngine = {
     addPlayedSong: (songId) => {
         if (songId) state.recsEngine.playedIds.add(songId);
     },
-    /**
-     * --- UPDATED ---
-     * Builds the recommendation playlist with multi-artist fallback and title sanitization.
-     * This function now runs in the background and updates the state upon completion.
-     */
     buildRecommendationPlaylist: async (seedSong) => {
         if (!seedSong) return;
-        // Prevent re-building for the same seed in the same session
         if (state.recsEngine.seedSongId === seedSong.id) return;
         
         state.recsEngine.seedSongId = seedSong.id;
@@ -73,13 +55,12 @@ const recsEngine = {
         ui.showToast(`Finding songs similar to ${util.getItemName(seedSong)}...`);
         
         let initialRecs = null;
-        // --- NEW --- Loop through artists and try each one until we get a result.
         for (const artist of primaryArtists) {
             const artistName = _sanitizeForApi(artist.name);
             const recs = await lastFmApi.getSimilarTrack(artistName, trackName, 30);
             if (recs && recs.length > 0) {
                 initialRecs = recs;
-                break; // Success, we have recommendations.
+                break;
             }
         }
 
@@ -128,9 +109,7 @@ const recsEngine = {
         });
         const foundSongs = (await Promise.all(recommendationPromises)).filter(Boolean);
         
-        // Silently update the playlist in the background
         state.recsEngine.recommendationPlaylist = [seedSong, ...foundSongs];
-        // Only update the main playlist if recommendation mode is still active for this seed
         if (state.recsEngine.isRecommendationModeActive && state.recsEngine.seedSongId === seedSong.id) {
             state.currentPlaylist = state.recsEngine.recommendationPlaylist;
             dom.viewPlaylistBtn.disabled = false;
@@ -140,10 +119,6 @@ const recsEngine = {
 };
 
 export const player = {
-    /**
-     * --- UPDATED ---
-     * Now plays the song instantly and starts recommendation building in the background.
-     */
     playSong: async (songId, playContext = {}) => {
         try {
             const songResult = await api.getSong(songId);
@@ -156,7 +131,9 @@ export const player = {
                 return;
             }
 
-            // --- CRITICAL CHANGE --- Play audio and update UI immediately.
+            // --- NEW --- Add the song to our local history on successful playback.
+            history.addSong(songData);
+
             dom.audioPlayer.src = audioUrl;
             const savedPitch = localStorage.getItem('musicPlayerPitch');
             if (savedPitch) {
@@ -165,9 +142,7 @@ export const player = {
             dom.audioPlayer.play();
             player.updatePlayerUI(songData);
 
-            // --- CRITICAL CHANGE --- Start recommendation building in the background ("fire and forget").
             if (playContext.startRecommendation) {
-                // The 'await' keyword is removed here.
                 recsEngine.buildRecommendationPlaylist(songData);
             } else {
                 state.recsEngine.isRecommendationModeActive = false;
@@ -228,7 +203,6 @@ export const player = {
         const status = player.playNextSong();
         if (status === 'ended' && state.autoContinue && state.currentSongData) {
             ui.showToast(`Playlist ended. Finding more songs like ${util.getItemName(state.currentSongData)}...`);
-            // Here we must wait for the playlist to continue playback.
             await recsEngine.buildRecommendationPlaylist(state.currentSongData);
             if (state.currentPlaylist.length > 1) {
                 player.playSong(state.currentPlaylist[1].id);
