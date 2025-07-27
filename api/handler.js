@@ -2,11 +2,6 @@
 // This serverless function acts as a secure proxy for all external API calls.
 
 export default async function handler(request, response) {
-  // --- SECURITY CHECK REMOVED AS PER REQUEST ---
-  // The original check verified that requests came from your own website's domain.
-  // The API is now open and can be accessed from any origin.
-  // ---
-
   const targetApi = request.query.target;
   let externalUrl = '';
 
@@ -38,6 +33,21 @@ export default async function handler(request, response) {
 
         const lastfmBase = 'https://ws.audioscrobbler.com/2.0/';
         externalUrl = `${lastfmBase}?method=track.getSimilar&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}&api_key=${apiKey}&format=json&limit=${limit}`;
+    
+    // --- NEW --- Added a new target for the artist top tracks fallback.
+    } else if (targetApi === 'lastfm-artist') {
+        const artist = request.query.artist;
+        const limit = request.query.limit || 20;
+        const apiKey = process.env.LASTFM_API_KEY;
+
+        if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
+            console.error("Last.fm API Key is not configured on the server.");
+            return response.status(500).json({ error: 'Last.fm API key is not configured.' });
+        }
+        
+        const lastfmBase = 'https://ws.audioscrobbler.com/2.0/';
+        externalUrl = `${lastfmBase}?method=artist.gettoptracks&artist=${encodeURIComponent(artist)}&api_key=${apiKey}&format=json&limit=${limit}`;
+
     } else {
       return response.status(400).json({ error: 'Invalid target API specified' });
     }
