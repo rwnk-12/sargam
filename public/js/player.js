@@ -8,7 +8,7 @@ import { util } from './utils.js';
 import { api, lrcApi, lastFmApi } from './api.js';
 import { ui } from './ui.js';
 
-// --- INTERNAL HELPER FUNCTIONS for lyrics ---
+// --- INTERNAL HELPER FUNCTIONS ---
 
 /**
  * Converts TTML time format (MM:SS.mmm or SS.mmm) to seconds.
@@ -28,25 +28,61 @@ const _convertTtmlTimeToSeconds = (timeString) => {
     return seconds;
 };
 
+/**
+ * --- NEW ---
+ * Sanitizes a string for better API matching by removing hyphens and parenthetical text.
+ * @param {string} text - The text to sanitize.
+ * @returns {string} The sanitized text.
+ */
+const _sanitizeForApi = (text) => {
+    if (!text) return '';
+    // Replace hyphens with spaces, e.g., "Wake-Me-Up" -> "Wake Me Up"
+    let sanitized = text.replace(/-/g, ' ');
+    // Remove parenthetical text, e.g., "Song (From Movie)" -> "Song"
+    sanitized = sanitized.replace(/\s*\(.*\)\s*$/, '').trim();
+    return sanitized;
+};
+
+
 const recsEngine = {
     addPlayedSong: (songId) => {
         if (songId) state.recsEngine.playedIds.add(songId);
     },
+    /**
+     * --- UPDATED ---
+     * Builds the recommendation playlist with multi-artist fallback and title sanitization.
+     * This function now runs in the background and updates the state upon completion.
+     */
     buildRecommendationPlaylist: async (seedSong) => {
         if (!seedSong) return;
+        // Prevent re-building for the same seed in the same session
         if (state.recsEngine.seedSongId === seedSong.id) return;
+        
         state.recsEngine.seedSongId = seedSong.id;
         state.recsEngine.isRecommendationModeActive = true;
         state.recsEngine.recommendationPlaylist = [];
         state.recsEngine.playedIds.clear();
         state.recsEngine.sessionUsedRandomIndices.clear();
         recsEngine.addPlayedSong(seedSong.id);
-        const artistName = util.getArtistNames(seedSong)[0]?.name;
-        const trackName = util.getItemName(seedSong);
-        if (!artistName || !trackName) return;
-        ui.showToast(`Finding songs similar to ${trackName}...`);
+
+        const primaryArtists = util.getArtistNames(seedSong);
+        const trackName = _sanitizeForApi(util.getItemName(seedSong));
+
+        if (primaryArtists.length === 0 || !trackName) return;
+
+        ui.showToast(`Finding songs similar to ${util.getItemName(seedSong)}...`);
         
-        const initialRecs = await lastFmApi.getSimilarTrack(artistName, trackName, 30);
+        let initialRecs = null;
+        // --- NEW --- Loop through artists and try each one until we get a result.
+        for (const artist of primaryArtists) {
+            const artistName = _sanitizeForApi(artist.name);
+            const recs = await lastFmApi.getSimilarTrack(artistName, trackName, 30);
+            if (recs && recs.length > 0) {
+                initialRecs = recs;
+                break; // Success, we have recommendations.
+            }
+        }
+
         if (!initialRecs) {
             ui.showToast("Recommendation engine disabled: Check API key or service status.");
             state.currentPlaylist = [seedSong];
@@ -54,7 +90,7 @@ const recsEngine = {
             return;
         }
         if (initialRecs.length < 12) {
-            ui.showToast("Not enough similar tracks found. Try another song.");
+            ui.showToast("Not enough similar tracks found to build a radio station.");
             state.currentPlaylist = [seedSong];
             state.recsEngine.isRecommendationModeActive = false;
             return;
@@ -62,15 +98,16 @@ const recsEngine = {
 
         const seedIndex2 = util.getUniqueRandomRecIndex();
         const seedIndex3 = util.getUniqueRandomRecIndex();
-        const seed1 = { artist: artistName, track: trackName };
-        const seed2 = { artist: initialRecs[seedIndex2].artist.name, track: initialRecs[seedIndex2].name };
-        const seed3 = { artist: initialRecs[seedIndex3].artist.name, track: initialRecs[seedIndex3].name };
-        ui.showToast(`Building deep playlist...`);
+        const seed1 = { artist: _sanitizeForApi(primaryArtists[0].name), track: trackName };
+        const seed2 = { artist: _sanitizeForApi(initialRecs[seedIndex2].artist.name), track: _sanitizeForApi(initialRecs[seedIndex2].name) };
+        const seed3 = { artist: _sanitizeForApi(initialRecs[seedIndex3].artist.name), track: _sanitizeForApi(initialRecs[seedIndex3].name) };
+        
         const [recs1, recs2, recs3] = await Promise.all([
             lastFmApi.getSimilarTrack(seed1.artist, seed1.track),
             lastFmApi.getSimilarTrack(seed2.artist, seed2.track),
             lastFmApi.getSimilarTrack(seed3.artist, seed3.track)
         ]);
+
         let combinedSimilarTracks = [].concat(recs1 || [], recs2 || [], recs3 || []);
         const uniqueTracks = Array.from(new Map(combinedSimilarTracks.map(track => [`${track.name.toLowerCase()}---${track.artist.name.toLowerCase()}`, track])).values());
         for (let i = uniqueTracks.length - 1; i > 0; i--) {
@@ -90,18 +127,23 @@ const recsEngine = {
             return null;
         });
         const foundSongs = (await Promise.all(recommendationPromises)).filter(Boolean);
+        
+        // Silently update the playlist in the background
         state.recsEngine.recommendationPlaylist = [seedSong, ...foundSongs];
-        state.currentPlaylist = state.recsEngine.recommendationPlaylist;
-        dom.viewPlaylistBtn.disabled = false;
-        if (state.currentPlaylist.length > 1) {
-            ui.showToast(`Deep playlist ready! ${state.currentPlaylist.length} songs added.`);
-        } else {
-            ui.showToast(`Couldn't find any playable similar tracks.`);
+        // Only update the main playlist if recommendation mode is still active for this seed
+        if (state.recsEngine.isRecommendationModeActive && state.recsEngine.seedSongId === seedSong.id) {
+            state.currentPlaylist = state.recsEngine.recommendationPlaylist;
+            dom.viewPlaylistBtn.disabled = false;
+            console.log(`Background radio station ready with ${state.currentPlaylist.length} songs.`);
         }
     }
 };
 
 export const player = {
+    /**
+     * --- UPDATED ---
+     * Now plays the song instantly and starts recommendation building in the background.
+     */
     playSong: async (songId, playContext = {}) => {
         try {
             const songResult = await api.getSong(songId);
@@ -113,14 +155,8 @@ export const player = {
                 ui.showToast("Sorry, no streamable audio found for this song.");
                 return;
             }
-            if (playContext.startRecommendation) {
-                await recsEngine.buildRecommendationPlaylist(songData);
-            } else {
-                state.recsEngine.isRecommendationModeActive = false;
-                state.recsEngine.seedSongId = null;
-                dom.viewPlaylistBtn.disabled = state.currentPlaylist.length <= 1;
-            }
-            recsEngine.addPlayedSong(songData.id);
+
+            // --- CRITICAL CHANGE --- Play audio and update UI immediately.
             dom.audioPlayer.src = audioUrl;
             const savedPitch = localStorage.getItem('musicPlayerPitch');
             if (savedPitch) {
@@ -128,6 +164,19 @@ export const player = {
             }
             dom.audioPlayer.play();
             player.updatePlayerUI(songData);
+
+            // --- CRITICAL CHANGE --- Start recommendation building in the background ("fire and forget").
+            if (playContext.startRecommendation) {
+                // The 'await' keyword is removed here.
+                recsEngine.buildRecommendationPlaylist(songData);
+            } else {
+                state.recsEngine.isRecommendationModeActive = false;
+                state.recsEngine.seedSongId = null;
+                dom.viewPlaylistBtn.disabled = state.currentPlaylist.length <= 1;
+            }
+
+            recsEngine.addPlayedSong(songData.id);
+            
             if (dom.bodyEl.classList.contains('lyrics-view-active') || dom.bodyEl.classList.contains('full-player-active')) {
                 player.fetchAndRenderLyrics(songData);
             }
@@ -179,6 +228,7 @@ export const player = {
         const status = player.playNextSong();
         if (status === 'ended' && state.autoContinue && state.currentSongData) {
             ui.showToast(`Playlist ended. Finding more songs like ${util.getItemName(state.currentSongData)}...`);
+            // Here we must wait for the playlist to continue playback.
             await recsEngine.buildRecommendationPlaylist(state.currentSongData);
             if (state.currentPlaylist.length > 1) {
                 player.playSong(state.currentPlaylist[1].id);
@@ -236,7 +286,6 @@ export const player = {
             songElements.forEach(el => el.classList.add('playing'));
         }
     },
-    // --- UPDATED --- Renders lyrics with multi-vocalist support
     renderCachedLyrics: (lyricsData) => {
         state.currentLyrics = lyricsData;
         if (lyricsData && lyricsData.length > 0) {
@@ -247,7 +296,6 @@ export const player = {
             dom.lyricsContainer.innerHTML = `<p class="lyrics-status text-2xl font-semibold opacity-50">No synchronized lyrics found.</p>`;
         }
     },
-    // --- UPDATED --- Fetches lyrics and uses the new TTML parser
     fetchAndRenderLyrics: async (song) => {
         if (state.lyricsCache.has(song.id)) {
             player.renderCachedLyrics(state.lyricsCache.get(song.id));
@@ -281,7 +329,6 @@ export const player = {
             player.renderCachedLyrics(null);
         }
     },
-    // --- NEW --- Parses TTML string into a usable array of lyric objects
     parseTtml: (ttmlString) => {
         if (!ttmlString) return [];
         const parser = new DOMParser();
