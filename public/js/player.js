@@ -75,7 +75,8 @@ const recsEngine = {
         let initialRecs = null;
         // --- NEW --- Loop through artists and try each one until we get a result.
         for (const artist of primaryArtists) {
-            const artistName = _sanitizeForApi(artist.name);
+            // --- BUG FIX --- Decode HTML entities from artist name before sanitizing and sending to API.
+            const artistName = _sanitizeForApi(util.decodeHtml(artist.name));
             const recs = await lastFmApi.getSimilarTrack(artistName, trackName, 30);
             if (recs && recs.length > 0) {
                 initialRecs = recs;
@@ -98,9 +99,9 @@ const recsEngine = {
 
         const seedIndex2 = util.getUniqueRandomRecIndex();
         const seedIndex3 = util.getUniqueRandomRecIndex();
-        const seed1 = { artist: _sanitizeForApi(primaryArtists[0].name), track: trackName };
-        const seed2 = { artist: _sanitizeForApi(initialRecs[seedIndex2].artist.name), track: _sanitizeForApi(initialRecs[seedIndex2].name) };
-        const seed3 = { artist: _sanitizeForApi(initialRecs[seedIndex3].artist.name), track: _sanitizeForApi(initialRecs[seedIndex3].name) };
+        const seed1 = { artist: _sanitizeForApi(util.decodeHtml(primaryArtists[0].name)), track: trackName };
+        const seed2 = { artist: _sanitizeForApi(util.decodeHtml(initialRecs[seedIndex2].artist.name)), track: _sanitizeForApi(initialRecs[seedIndex2].name) };
+        const seed3 = { artist: _sanitizeForApi(util.decodeHtml(initialRecs[seedIndex3].artist.name)), track: _sanitizeForApi(initialRecs[seedIndex3].name) };
         
         const [recs1, recs2, recs3] = await Promise.all([
             lastFmApi.getSimilarTrack(seed1.artist, seed1.track),
