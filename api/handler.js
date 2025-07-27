@@ -1,8 +1,24 @@
 // /api/handler.js
-// This serverless function acts as a proxy for all external API calls.
+// This serverless function acts as a secure proxy for all external API calls.
 
 export default async function handler(request, response) {
-  const targetApi = request.query.target; // 'jiosavn', 'lrc', 'lastfm'
+  // --- SECURITY CHECK: Verify the request comes from our own website ---
+  const referer = request.headers.referer;
+  const allowedDomain = process.env.APP_URL;
+
+  if (process.env.NODE_ENV === 'production') {
+    if (!allowedDomain) {
+      console.error("CRITICAL: APP_URL environment variable is not set.");
+      return response.status(500).json({ error: 'Server security is misconfigured.' });
+    }
+    if (!referer || !referer.startsWith(allowedDomain)) {
+      return response.status(403).json({ error: 'Forbidden: This API cannot be accessed from this origin.' });
+    }
+  }
+  // --- END SECURITY CHECK ---
+
+
+  const targetApi = request.query.target;
   let externalUrl = '';
 
   try {
@@ -11,10 +27,15 @@ export default async function handler(request, response) {
       const jioSvnBase = 'https://jiosvn.vercel.app/api';
       externalUrl = `${jioSvnBase}${path}`;
     } else if (targetApi === 'lrc') {
+      // --- UPDATED: Read lyrics API endpoint from environment variables ---
+      const lrcBase = process.env.LRC_API;
+      if (!lrcBase) {
+        console.error("CRITICAL: LRC_API environment variable is not set.");
+        return response.status(500).json({ error: 'Server lyrics service is misconfigured.' });
+      }
+      
       const song = request.query.song;
       const artist = request.query.artist;
-      const lrcBase = 'https://applelrcfetch-2.pages.dev/api/search';
-      // --- UPDATED --- Always request the TTML format for richer lyric data
       externalUrl = `${lrcBase}?song=${encodeURIComponent(song)}&artist=${encodeURIComponent(artist)}&format=ttml`;
     } else if (targetApi === 'lastfm') {
         const artist = request.query.artist;
