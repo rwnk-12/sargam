@@ -1,16 +1,16 @@
 // /public/js/player.js
-// This module contains all logic for the audio player, including playback,
-// playlist management, lyrics, and the recommendation engine.
+// This module contains all logic for the audio player.
 
 import { dom } from './dom.js';
 import { state } from './state.js';
 import { util } from './utils.js';
 import { api, lrcApi, lastFmApi } from './api.js';
-import { ui } from './ui.js';
-import { history } from './history.js'; // --- NEW --- Import the history module
+import { history } from './history.js';
+
+// --- NEW --- Module-level variable to hold a reference to the UI module.
+let ui;
 
 // --- INTERNAL HELPER FUNCTIONS ---
-
 const _convertTtmlTimeToSeconds = (timeString) => {
     if (!timeString) return 0;
     const parts = timeString.split(':');
@@ -31,13 +31,12 @@ const _sanitizeForApi = (text) => {
     return sanitized;
 };
 
-
 const recsEngine = {
     addPlayedSong: (songId) => {
         if (songId) state.recsEngine.playedIds.add(songId);
     },
     buildRecommendationPlaylist: async (seedSong) => {
-        if (!seedSong) return;
+        if (!seedSong || !ui) return;
         if (state.recsEngine.seedSongId === seedSong.id) return;
         
         state.recsEngine.seedSongId = seedSong.id;
@@ -119,7 +118,13 @@ const recsEngine = {
 };
 
 export const player = {
+    // --- NEW --- Initialization function to receive dependencies.
+    init: (dependencies) => {
+        ui = dependencies.ui;
+    },
+
     playSong: async (songId, playContext = {}) => {
+        if (!ui) return; // Guard against calls before initialization
         try {
             const songResult = await api.getSong(songId);
             if (!songResult || !songResult.data || songResult.data.length === 0) throw new Error('Could not fetch song details.');
@@ -131,7 +136,6 @@ export const player = {
                 return;
             }
 
-            // --- NEW --- Add the song to our local history on successful playback.
             history.addSong(songData);
 
             dom.audioPlayer.src = audioUrl;
@@ -214,6 +218,7 @@ export const player = {
         }
     },
     updatePlayerUI: (songData) => {
+        if (!ui) return;
         const imageUrl = util.getBestImageUrl(songData.image);
         const smallImageUrl = util.getBestImageUrl(songData.image, '150x150');
         const artistLinks = util.renderArtistLinks(util.getArtistNames(songData));
