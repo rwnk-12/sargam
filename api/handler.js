@@ -6,11 +6,14 @@ export default async function handler(request, response) {
   const referer = request.headers.referer;
   const allowedDomain = process.env.APP_URL;
 
-  if (process.env.NODE_ENV === 'production') {
+  // This check now specifically targets Vercel production deployments.
+  // It will NOT block requests during local development or in Vercel preview deployments.
+  if (process.env.VERCEL_ENV === 'production') {
     if (!allowedDomain) {
-      console.error("CRITICAL: APP_URL environment variable is not set.");
+      console.error("CRITICAL: The APP_URL environment variable is not set in your Vercel project.");
       return response.status(500).json({ error: 'Server security is misconfigured.' });
     }
+    // Block the request if it doesn't have a referer or if the referer doesn't match your app's URL.
     if (!referer || !referer.startsWith(allowedDomain)) {
       return response.status(403).json({ error: 'Forbidden: This API cannot be accessed from this origin.' });
     }
@@ -27,7 +30,6 @@ export default async function handler(request, response) {
       const jioSvnBase = 'https://jiosvn.vercel.app/api';
       externalUrl = `${jioSvnBase}${path}`;
     } else if (targetApi === 'lrc') {
-      // --- UPDATED: Read lyrics API endpoint from environment variables ---
       const lrcBase = process.env.LRC_API;
       if (!lrcBase) {
         console.error("CRITICAL: LRC_API environment variable is not set.");
