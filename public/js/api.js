@@ -35,7 +35,6 @@ export const api = {
 export const lrcApi = {
     searchLyrics: async (songTitle, artistName) => {
         try {
-            // --- NEW --- Sanitize the song title to remove parenthetical text for better matching.
             const sanitizedTitle = songTitle.replace(/\s*\(.*\)\s*$/, '').trim();
             
             return await fetchFromApiHandler(`/api/handler?target=lrc&song=${encodeURIComponent(sanitizedTitle)}&artist=${encodeURIComponent(artistName)}`);
@@ -60,6 +59,20 @@ export const lastFmApi = {
             return data.similartracks.track;
         } catch (error) {
             console.error("Failed to fetch from Last.fm API handler:", error);
+            return null;
+        }
+    },
+    // --- NEW --- Fallback function to get popular tracks by the same artist.
+    getArtistTopTracks: async (artist, limit = 20) => {
+        try {
+            const data = await fetchFromApiHandler(`/api/handler?target=lastfm-artist&artist=${encodeURIComponent(artist)}&limit=${limit}`);
+            if (data.error || !data.toptracks || !data.toptracks.track) {
+                console.warn("Last.fm: No top tracks found for artist.", data);
+                return null;
+            }
+            return data.toptracks.track;
+        } catch (error) {
+            console.error("Failed to fetch artist top tracks from Last.fm API handler:", error);
             return null;
         }
     }
