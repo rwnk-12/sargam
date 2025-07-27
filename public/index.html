@@ -22,15 +22,15 @@
                 extend: {
                     fontFamily: { sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'] },
                     colors: {
-                        'music-bg-base': '#09090b',
-                        'music-bg-elevated': '#1c1c1e',
-                        'music-bg-hover': '#27272a',
-                        'music-bg-card': '#18181b',
-                        'music-border': '#27272a',
-                        'music-text-primary': '#fafafa',
-                        'music-text-secondary': '#a1a1aa',
+                        'music-bg-base': '#121212',
+                        'music-bg-elevated': '#181818',
+                        'music-bg-hover': '#282828',
+                        'music-bg-card': '#181818',
+                        'music-border': '#282828',
+                        'music-text-primary': '#ffffff',
+                        'music-text-secondary': '#b3b3b3',
                         'music-accent': '#f5596d',
-                        'music-accent-hover': '#f5596d',
+                        'music-accent-hover': '#e04458',
                         'music-ring': '#f5596d',
                     }
                 }
@@ -55,7 +55,12 @@
             </div>
             <nav class="mt-6">
                 <ul class="space-y-2">
-                    <li><a href="#" id="home-btn" class="flex items-center gap-4 text-base font-medium hover:text-white transition-colors text-music-text-secondary px-3 py-2 rounded-md hover:bg-music-bg-hover"><i class="fa-solid fa-home w-5 text-center"></i><span>Home</span></a></li>
+                    <li><a href="#" id="home-btn" class="flex items-center gap-4 text-base font-medium hover:text-white transition-colors text-music-text-primary px-3 py-2 rounded-md hover:bg-music-bg-hover"><i class="fa-solid fa-home w-5 text-center text-music-accent"></i><span>Home</span></a></li>
+                </ul>
+                <h3 id="library-heading" class="text-sm font-semibold text-music-text-secondary tracking-wider uppercase mt-8 mb-3">Library</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" id="artists-link" data-type="artist" class="flex items-center gap-4 text-base font-medium hover:text-white transition-colors text-music-text-secondary px-3 py-2 rounded-md hover:bg-music-bg-hover"><i class="fa-solid fa-microphone-lines w-5 text-center"></i><span>Artists</span></a></li>
+                    <li><a href="#" id="albums-link" data-type="album" class="flex items-center gap-4 text-base font-medium hover:text-white transition-colors text-music-text-secondary px-3 py-2 rounded-md hover:bg-music-bg-hover"><i class="fa-solid fa-compact-disc w-5 text-center"></i><span>Albums</span></a></li>
                 </ul>
             </nav>
         </aside>
@@ -187,7 +192,7 @@
         <div id="lyrics-background"><img id="lyrics-bg-image" src="" alt="" class="lyrics-bg-image" crossorigin="anonymous"/></div>
         
         <header id="desktop-lyrics-header">
-            <button id="desktop-lyrics-view-close-btn" class="text-gray-400 hover:text-white transition-colors text-5xl leading-none">&times;</button>
+            <button id="desktop-lyrics-view-close-btn" class="text-gray-400 hover:text-white transition-colors text-5xl leading-none">×</button>
         </header>
         
         <header id="mobile-lyrics-header">
@@ -200,7 +205,7 @@
                     <div id="lyrics-header-artist"></div>
                 </div>
             </div>
-            <button id="mobile-lyrics-view-close-btn" class="text-gray-400 hover:text-white transition-colors">&times;</button>
+            <button id="mobile-lyrics-view-close-btn" class="text-gray-400 hover:text-white transition-colors">×</button>
         </header>
         
         <div id="lyrics-content" class="gap-16">
@@ -252,7 +257,7 @@
         <div id="playlist-modal-content">
             <div class="flex justify-between items-center p-4 border-b border-music-border">
                 <h2 class="text-lg font-bold">Up Next</h2>
-                <button id="playlist-modal-close-btn" class="text-music-text-secondary hover:text-white text-2xl">&times;</button>
+                <button id="playlist-modal-close-btn" class="text-music-text-secondary hover:text-white text-2xl">×</button>
             </div>
             <div id="playlist-modal-body"></div>
         </div>
