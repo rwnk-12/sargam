@@ -5,73 +5,29 @@ import { dom } from './dom.js';
 import { state } from './state.js';
 import { util } from './utils.js';
 import { api } from './api.js';
-import { history } from './history.js';
-
-// --- NEW --- Module-level variables to hold dependencies.
-let player;
-let uiRef; // A reference to this module's own exports
+import { player } from './player.js';
 
 export const ui = {
-    // --- NEW --- Initialization function to receive dependencies.
-    init: (dependencies) => {
-        player = dependencies.player;
-        uiRef = ui; // Set the reference
-    },
-
     renderContent: (html) => {
         dom.contentContainer.innerHTML = html;
         dom.mainContent.scrollTop = 0;
-        if (player) {
-            player.updateActiveSongIndicator();
-        }
+        player.updateActiveSongIndicator();
     },
     renderError: (message) => {
-        uiRef.renderContent(`<div class="text-center p-8 bg-red-900/50 rounded-xl"><h2 class="text-2xl font-bold">Error</h2><p>${message}</p></div>`);
+        ui.renderContent(`<div class="text-center p-8 bg-red-900/50 rounded-xl"><h2 class="text-2xl font-bold">Error</h2><p>${message}</p></div>`);
     },
     showSkeletonLoader: () => {
-        uiRef.renderContent(`<div class="space-y-4"><div class="skeleton h-10 w-1/4"></div><div class="skeleton h-40 w-full"></div><div class="skeleton h-40 w-full"></div></div>`);
+        ui.renderContent(`<div class="space-y-4"><div class="skeleton h-10 w-1/4"></div><div class="skeleton h-40 w-full"></div><div class="skeleton h-40 w-full"></div></div>`);
     },
-    renderHomePage: (recentlyPlayed, homePageData) => {
-        let html = '';
-
-        if (recentlyPlayed && recentlyPlayed.length > 0) {
-            html += `
-                <div class="mb-12">
-                    <h2 class="text-3xl font-bold tracking-tight mb-6">Recently Played</h2>
-                    ${uiRef.renderSongGrid(recentlyPlayed.slice(0, 7))}
-                </div>
-            `;
-        }
-
-        if (homePageData) {
-            if (homePageData.charts) {
-                html += `
-                    <div class="mb-12">
-                        <h2 class="text-3xl font-bold tracking-tight mb-6">Top Charts</h2>
-                        ${uiRef.renderGrid(homePageData.charts)}
-                    </div>
-                `;
-            }
-            if (homePageData.featured_playlists) {
-                 html += `
-                    <div class="mb-12">
-                        <h2 class="text-3xl font-bold tracking-tight mb-6">Featured Playlists</h2>
-                        ${uiRef.renderGrid(homePageData.featured_playlists)}
-                    </div>
-                `;
-            }
-        }
-        
-        if (html === '') {
-            html = `<div class="h-full flex flex-col items-center justify-center text-center p-8"><h1 class="text-8xl font-extrabold text-music-text-secondary/10 tracking-tighter">Srgam</h1><p class="text-music-text-secondary mt-2 text-lg max-w-md">Start listening to music to personalize your home screen.</p></div>`;
-        }
-
-        uiRef.renderContent(html);
+    renderInitialView: () => {
+        state.lastSearchData = null;
+        ui.renderContent(`<div class="h-full flex flex-col items-center justify-center text-center p-8"><h1 class="text-8xl font-extrabold text-music-text-secondary/10 tracking-tighter">Srgam</h1><p class="text-music-text-secondary mt-2 text-lg max-w-md">Use the search bar to discover a world of music. Find your favorite songs, albums, and artists to begin your listening journey.</p></div>`);
+        dom.suggestionsContainer.innerHTML = '';
     },
     renderPaginatedSection: (category, data, renderer, query, page) => {
         if (!data || !data.results || data.results.length === 0) return '<p class="text-music-text-secondary text-center py-8">No results found in this category.</p>';
         let html = renderer(data.results);
-        html += uiRef.renderPaginationControls(data.total, page, query, category);
+        html += ui.renderPaginationControls(data.total, page, query, category);
         return html;
     },
     renderPaginationControls: (total, page, query, category) => {
@@ -89,17 +45,17 @@ export const ui = {
         state.lastSearchQuery = query;
         const { songData, albumData, artistData } = allData;
         const tabs = [
-            { id: 'songs', title: 'Songs', data: songData, renderer: state.songViewMode === 'list' ? uiRef.renderSongList : uiRef.renderSongGrid },
-            { id: 'albums', title: 'Albums', data: albumData, renderer: uiRef.renderGrid },
-            { id: 'artists', title: 'Artists', data: artistData, renderer: uiRef.renderGrid },
+            { id: 'songs', title: 'Songs', data: songData, renderer: state.songViewMode === 'list' ? ui.renderSongList : ui.renderSongGrid },
+            { id: 'albums', title: 'Albums', data: albumData, renderer: ui.renderGrid },
+            { id: 'artists', title: 'Artists', data: artistData, renderer: ui.renderGrid },
         ];
         const activeTabId = state.currentSearchTab;
         const tabButtonsHtml = tabs.map(tab => `<button class="tab-button text-music-text-secondary ${tab.id === activeTabId ? 'active' : ''}" data-tab="${tab.id}">${tab.title}</button>`).join('');
         const viewToggleHtml = ` <div id="song-view-toggle-container" class="${activeTabId === 'songs' ? 'flex' : 'hidden'} items-center gap-1"> <button data-view="list" title="List View" class="p-2 rounded-md ${state.songViewMode === 'list' ? 'text-white bg-music-bg-hover' : 'text-music-text-secondary'} hover:text-white hover:bg-music-bg-hover"><i class="fas fa-list"></i></button> <button data-view="grid" title="Grid View" class="p-2 rounded-md ${state.songViewMode === 'grid' ? 'text-white bg-music-bg-hover' : 'text-music-text-secondary'} hover:text-white hover:bg-music-bg-hover"><i class="fas fa-grip"></i></button> </div>`;
         const headerHtml = `<div class="flex justify-between items-center border-b border-music-border mb-6"> <div id="search-tabs" class="flex items-center gap-2">${tabButtonsHtml}</div> ${viewToggleHtml} </div>`;
-        const panelsHtml = tabs.map(tab => `<div id="panel-${tab.id}" class="tab-panel ${tab.id === activeTabId ? 'active' : ''}">${uiRef.renderPaginatedSection(tab.id, tab.data, tab.renderer, query, state.searchPage[tab.id] || 1)}</div>`).join('');
+        const panelsHtml = tabs.map(tab => `<div id="panel-${tab.id}" class="tab-panel ${tab.id === activeTabId ? 'active' : ''}">${ui.renderPaginatedSection(tab.id, tab.data, tab.renderer, query, state.searchPage[tab.id] || 1)}</div>`).join('');
         const finalHtml = `<div class="w-full">${headerHtml}<div id="search-panels">${panelsHtml}</div></div>`;
-        uiRef.renderContent(finalHtml);
+        ui.renderContent(finalHtml);
     },
     renderGrid: (items) => {
         if (!items) return '';
@@ -113,7 +69,7 @@ export const ui = {
         });
         return html + `</div>`;
     },
-    renderSongGrid: (songs) => uiRef.renderGrid(songs),
+    renderSongGrid: (songs) => ui.renderGrid(songs),
     renderSongList: (songs, isNumbered = false) => {
         if (!songs || songs.length === 0) return '';
         let html = `<div class="space-y-1">`;
@@ -127,14 +83,14 @@ export const ui = {
     },
     renderAlbumPage: (album) => {
         let html = navigation.getBackButton();
-        html += `<div class="fade-in-up"><div class="flex flex-col md:flex-row gap-8 items-center md:items-start mb-10"><img src="${util.getBestImageUrl(album.data.image)}" alt="${util.getItemName(album.data)}" class="w-48 h-48 md:w-56 md:h-56 rounded-lg shadow-2xl object-cover flex-shrink-0" crossorigin="anonymous"><div class="mt-4 md:mt-2 text-center md:text-left"><p class="text-sm font-semibold uppercase tracking-wider text-music-text-secondary">Album</p><h2 class="text-4xl lg:text-5xl font-extrabold tracking-tight mt-1">${util.getItemName(album.data)}</h2><div class="text-lg text-music-text-primary/90 font-medium mt-3">${util.renderArtistLinks(util.getArtistNames(album.data))}</div><p class="text-sm text-music-text-secondary mt-1">${album.data.year} • ${album.data.songCount} Songs</p></div></div>${uiRef.renderSongList(album.data.songs, true)}</div>`;
-        uiRef.renderContent(html);
+        html += `<div class="fade-in-up"><div class="flex flex-col md:flex-row gap-8 items-center md:items-start mb-10"><img src="${util.getBestImageUrl(album.data.image)}" alt="${util.getItemName(album.data)}" class="w-48 h-48 md:w-56 md:h-56 rounded-lg shadow-2xl object-cover flex-shrink-0" crossorigin="anonymous"><div class="mt-4 md:mt-2 text-center md:text-left"><p class="text-sm font-semibold uppercase tracking-wider text-music-text-secondary">Album</p><h2 class="text-4xl lg:text-5xl font-extrabold tracking-tight mt-1">${util.getItemName(album.data)}</h2><div class="text-lg text-music-text-primary/90 font-medium mt-3">${util.renderArtistLinks(util.getArtistNames(album.data))}</div><p class="text-sm text-music-text-secondary mt-1">${album.data.year} • ${album.data.songCount} Songs</p></div></div>${ui.renderSongList(album.data.songs, true)}</div>`;
+        ui.renderContent(html);
     },
     renderArtistPage: (artist) => {
         const artistData = artist.data;
         let html = navigation.getBackButton();
-        html += `<div class="fade-in-up"><div class="artist-hero p-8 md:p-12 rounded-lg flex items-end min-h-[300px] md:min-h-[400px] mb-12" style="background-image: url('${util.getBestImageUrl(artistData.image)}')"><div class="relative z-10">${artistData.isVerified ? '<p class="font-bold uppercase text-xs tracking-widest">Verified Artist</p>' : ''}<h1 class="text-5xl md:text-7xl font-black tracking-tighter">${util.getItemName(artistData)}</h1><p class="mt-2 text-base text-music-text-secondary font-medium">${util.formatNumber(artistData.followerCount)} followers</p></div></div><h2 class="text-2xl font-bold mb-4">Top Songs</h2>${uiRef.renderSongList(artistData.topSongs)}<h2 class="text-2xl font-bold mt-8 mb-4">Top Albums</h2>${uiRef.renderGrid(artistData.topAlbums)}</div>`;
-        uiRef.renderContent(html);
+        html += `<div class="fade-in-up"><div class="artist-hero p-8 md:p-12 rounded-lg flex items-end min-h-[300px] md:min-h-[400px] mb-12" style="background-image: url('${util.getBestImageUrl(artistData.image)}')"><div class="relative z-10">${artistData.isVerified ? '<p class="font-bold uppercase text-xs tracking-widest">Verified Artist</p>' : ''}<h1 class="text-5xl md:text-7xl font-black tracking-tighter">${util.getItemName(artistData)}</h1><p class="mt-2 text-base text-music-text-secondary font-medium">${util.formatNumber(artistData.followerCount)} followers</p></div></div><h2 class="text-2xl font-bold mb-4">Top Songs</h2>${ui.renderSongList(artistData.topSongs)}<h2 class="text-2xl font-bold mt-8 mb-4">Top Albums</h2>${ui.renderGrid(artistData.topAlbums)}</div>`;
+        ui.renderContent(html);
     },
     showToast: (message) => {
         const toast = document.getElementById('toast-notification');
@@ -164,29 +120,13 @@ export const ui = {
 };
 
 export const navigation = {
-    init: (dependencies) => {
-        uiRef = dependencies.ui;
-    },
-    goHome: async () => {
-        uiRef.showSkeletonLoader();
+    goHome: () => {
+        ui.renderInitialView();
         dom.searchInput.value = '';
-        state.lastSearchData = null;
-        
-        try {
-            const [recentlyPlayed, homePageApiResponse] = await Promise.all([
-                history.getHistory(),
-                api.getHomePageData()
-            ]);
-            
-            uiRef.renderHomePage(recentlyPlayed, homePageApiResponse?.data);
-        } catch (error) {
-            console.error("Failed to load home page:", error);
-            uiRef.renderError("Could not load the home page. Please try again later.");
-        }
     },
     goBackToSearch: () => {
         if (state.lastSearchData) {
-            uiRef.renderSearchResults(state.lastSearchData, state.lastSearchQuery);
+            ui.renderSearchResults(state.lastSearchData, state.lastSearchQuery);
         } else {
             navigation.goHome();
         }
@@ -195,7 +135,7 @@ export const navigation = {
         return state.lastSearchData ? `<div class="mb-8"><button data-action="go-back-to-search" class="text-music-text-secondary hover:text-white transition-colors font-medium text-sm"><i class="fa-solid fa-arrow-left mr-2"></i> Back to Search</button></div>` : '';
     },
     view: async (type, id) => {
-        uiRef.showSkeletonLoader();
+        ui.showSkeletonLoader();
         dom.suggestionsContainer.innerHTML = '';
         try {
             if (type === 'search') {
@@ -207,22 +147,22 @@ export const navigation = {
                 ]);
                 const allData = { songData: songResponse?.data, albumData: albumResponse?.data, artistData: artistResponse?.data };
                 state.currentSearchTab = allData.songData?.results?.length ? 'songs' : allData.albumData?.results?.length ? 'albums' : 'artists';
-                uiRef.renderSearchResults(allData, id);
-            } else if (type === 'album' || type === 'playlist') {
+                ui.renderSearchResults(allData, id);
+            } else if (type === 'album') {
                 const data = await api.getAlbum(id);
                 if (data?.data) {
                     state.currentPlaylist = data.data.songs.sort((a, b) => (a.track || 0) - (b.track || 0));
-                    uiRef.renderAlbumPage(data);
+                    ui.renderAlbumPage(data);
                 }
             } else if (type === 'artist') {
                 const data = await api.getArtist(id);
                 if (data?.data) {
                     state.currentPlaylist = data.data.topSongs || [];
-                    uiRef.renderArtistPage(data);
+                    ui.renderArtistPage(data);
                 }
             }
         } catch (error) {
-            uiRef.renderError('Could not fetch data. Please check your connection and try again.');
+            ui.renderError('Could not fetch data. Please check your connection and try again.');
         }
     }
 };
