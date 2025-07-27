@@ -73,23 +73,24 @@ const recsEngine = {
         ui.showToast(`Finding songs similar to ${util.getItemName(seedSong)}...`);
         
         let initialRecs = null;
-        // --- NEW --- Loop through artists and try each one until we get a result.
         for (const artist of primaryArtists) {
-            // --- BUG FIX --- Decode HTML entities from artist name before sanitizing and sending to API.
             const artistName = _sanitizeForApi(util.decodeHtml(artist.name));
             const recs = await lastFmApi.getSimilarTrack(artistName, trackName, 30);
             if (recs && recs.length > 0) {
                 initialRecs = recs;
-                break; // Success, we have recommendations.
+                break; 
             }
         }
 
-        if (!initialRecs) {
-            ui.showToast("Recommendation engine disabled: Check API key or service status.");
+        // --- BUG FIX --- Added a robust check for empty or invalid recommendation results.
+        // This prevents a crash if Last.fm returns an empty `track` array.
+        if (!initialRecs || initialRecs.length === 0) {
+            ui.showToast("Could not find similar tracks for this song.");
             state.currentPlaylist = [seedSong];
             state.recsEngine.isRecommendationModeActive = false;
             return;
         }
+        
         if (initialRecs.length < 12) {
             ui.showToast("Not enough similar tracks found to build a radio station.");
             state.currentPlaylist = [seedSong];
@@ -129,9 +130,7 @@ const recsEngine = {
         });
         const foundSongs = (await Promise.all(recommendationPromises)).filter(Boolean);
         
-        // Silently update the playlist in the background
         state.recsEngine.recommendationPlaylist = [seedSong, ...foundSongs];
-        // Only update the main playlist if recommendation mode is still active for this seed
         if (state.recsEngine.isRecommendationModeActive && state.recsEngine.seedSongId === seedSong.id) {
             state.currentPlaylist = state.recsEngine.recommendationPlaylist;
             dom.viewPlaylistBtn.disabled = false;
@@ -141,10 +140,6 @@ const recsEngine = {
 };
 
 export const player = {
-    /**
-     * --- UPDATED ---
-     * Now plays the song instantly and starts recommendation building in the background.
-     */
     playSong: async (songId, playContext = {}) => {
         try {
             const songResult = await api.getSong(songId);
@@ -157,7 +152,6 @@ export const player = {
                 return;
             }
 
-            // --- CRITICAL CHANGE --- Play audio and update UI immediately.
             dom.audioPlayer.src = audioUrl;
             const savedPitch = localStorage.getItem('musicPlayerPitch');
             if (savedPitch) {
@@ -166,9 +160,7 @@ export const player = {
             dom.audioPlayer.play();
             player.updatePlayerUI(songData);
 
-            // --- CRITICAL CHANGE --- Start recommendation building in the background ("fire and forget").
             if (playContext.startRecommendation) {
-                // The 'await' keyword is removed here.
                 recsEngine.buildRecommendationPlaylist(songData);
             } else {
                 state.recsEngine.isRecommendationModeActive = false;
@@ -229,7 +221,6 @@ export const player = {
         const status = player.playNextSong();
         if (status === 'ended' && state.autoContinue && state.currentSongData) {
             ui.showToast(`Playlist ended. Finding more songs like ${util.getItemName(state.currentSongData)}...`);
-            // Here we must wait for the playlist to continue playback.
             await recsEngine.buildRecommendationPlaylist(state.currentSongData);
             if (state.currentPlaylist.length > 1) {
                 player.playSong(state.currentPlaylist[1].id);
