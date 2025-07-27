@@ -14,7 +14,8 @@ export default async function handler(request, response) {
       const song = request.query.song;
       const artist = request.query.artist;
       const lrcBase = 'https://applelrcfetch-2.pages.dev/api/search';
-      externalUrl = `${lrcBase}?song=${encodeURIComponent(song)}&artist=${encodeURIComponent(artist)}`;
+      // --- UPDATED --- Always request the TTML format for richer lyric data
+      externalUrl = `${lrcBase}?song=${encodeURIComponent(song)}&artist=${encodeURIComponent(artist)}&format=ttml`;
     } else if (targetApi === 'lastfm') {
         const artist = request.query.artist;
         const track = request.query.track;
@@ -42,12 +43,6 @@ export default async function handler(request, response) {
     
     const data = await apiResponse.json();
 
-    // --- CRITICAL COST-SAVING CHANGE ---
-    // This header instructs Vercel's Edge Network to cache the response.
-    // s-maxage=3600: Cache for 1 hour on the edge. Subsequent identical requests will be served
-    // from the cache and will NOT invoke this function, saving you costs.
-    // stale-while-revalidate=86400: If a request comes after 1 hour, serve the old (stale)
-    // data immediately while re-fetching the new data in the background for the next user.
     response.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     
     return response.status(200).json(data);
