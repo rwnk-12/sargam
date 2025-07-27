@@ -5,9 +5,10 @@
 import { dom } from './dom.js';
 import { state } from './state.js';
 import { util } from './utils.js';
-import { ui, navigation } from './ui.js';
-import { player } from './player.js';
+// --- UPDATED --- Import from the central app coordinator
+import { player, ui, navigation } from './app.js';
 import { api } from './api.js';
+import { history } from './history.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
