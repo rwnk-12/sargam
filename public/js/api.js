@@ -30,7 +30,7 @@ export const api = {
     getSong: (id) => api.fetchFromApi(`/songs/${id}`),
     getAlbum: (id) => api.fetchFromApi(`/albums?id=${id}`),
     getArtist: (id) => api.fetchFromApi(`/artists/${id}`),
-    // --- NEW --- Function to get home page data like charts and playlists.
+    // --- CORRECTED --- The endpoint was wrong. It should be /modules with query parameters.
     getHomePageData: () => api.fetchFromApi(`/modules?language=english,hindi`),
 };
 
