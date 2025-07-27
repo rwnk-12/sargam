@@ -1,6 +1,5 @@
 // /public/js/api.js
 // This module handles all communication with backend APIs via our serverless handler.
-// This ensures all requests are same-origin and helps manage API keys securely on the server.
 
 async function fetchFromApiHandler(url) {
     try {
@@ -36,7 +35,10 @@ export const api = {
 export const lrcApi = {
     searchLyrics: async (songTitle, artistName) => {
         try {
-            return await fetchFromApiHandler(`/api/handler?target=lrc&song=${encodeURIComponent(songTitle)}&artist=${encodeURIComponent(artistName)}`);
+            // --- NEW --- Sanitize the song title to remove parenthetical text for better matching.
+            const sanitizedTitle = songTitle.replace(/\s*\(.*\)\s*$/, '').trim();
+            
+            return await fetchFromApiHandler(`/api/handler?target=lrc&song=${encodeURIComponent(sanitizedTitle)}&artist=${encodeURIComponent(artistName)}`);
         } catch (error) {
             console.error('Failed to fetch lyrics from LRC API handler:', error);
             return null;
