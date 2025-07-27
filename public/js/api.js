@@ -36,7 +36,6 @@ export const lrcApi = {
     searchLyrics: async (songTitle, artistName) => {
         try {
             const sanitizedTitle = songTitle.replace(/\s*\(.*\)\s*$/, '').trim();
-            
             return await fetchFromApiHandler(`/api/handler?target=lrc&song=${encodeURIComponent(sanitizedTitle)}&artist=${encodeURIComponent(artistName)}`);
         } catch (error) {
             console.error('Failed to fetch lyrics from LRC API handler:', error);
@@ -46,33 +45,48 @@ export const lrcApi = {
 };
 
 export const lastFmApi = {
-    getSimilarTrack: async (artist, track, limit = 20) => {
+    getSimilarTrack: async (artist, track, limit = 30) => {
         try {
             const data = await fetchFromApiHandler(`/api/handler?target=lastfm&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}&limit=${limit}`);
-            if (data.error || !data.similartracks || !data.similartracks.track) {
-                if (data.error === 'Last.fm API key is not configured.') {
-                    // The UI will be updated by the caller
-                }
-                console.warn("Last.fm: No similar tracks found or API key error.", data);
-                return null;
-            }
-            return data.similartracks.track;
+            return data?.similartracks?.track || null;
         } catch (error) {
-            console.error("Failed to fetch from Last.fm API handler:", error);
+            console.error("Failed to fetch similar tracks:", error);
             return null;
         }
     },
-    // --- NEW --- Fallback function to get popular tracks by the same artist.
-    getArtistTopTracks: async (artist, limit = 20) => {
+    getArtistTopTracks: async (artist, limit = 30) => {
         try {
-            const data = await fetchFromApiHandler(`/api/handler?target=lastfm-artist&artist=${encodeURIComponent(artist)}&limit=${limit}`);
-            if (data.error || !data.toptracks || !data.toptracks.track) {
-                console.warn("Last.fm: No top tracks found for artist.", data);
-                return null;
-            }
-            return data.toptracks.track;
+            const data = await fetchFromApiHandler(`/api/handler?target=lastfm-artist-toptracks&artist=${encodeURIComponent(artist)}&limit=${limit}`);
+            return data?.toptracks?.track || null;
         } catch (error) {
-            console.error("Failed to fetch artist top tracks from Last.fm API handler:", error);
+            console.error("Failed to fetch artist top tracks:", error);
+            return null;
+        }
+    },
+    getSimilarArtists: async (artist, limit = 10) => {
+        try {
+            const data = await fetchFromApiHandler(`/api/handler?target=lastfm-similar-artists&artist=${encodeURIComponent(artist)}&limit=${limit}`);
+            return data?.similarartists?.artist || null;
+        } catch (error) {
+            console.error("Failed to fetch similar artists:", error);
+            return null;
+        }
+    },
+    getTrackTopTags: async (artist, track) => {
+        try {
+            const data = await fetchFromApiHandler(`/api/handler?target=lastfm-track-tags&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}`);
+            return data?.toptags?.tag || null;
+        } catch (error) {
+            console.error("Failed to fetch track tags:", error);
+            return null;
+        }
+    },
+    getTagTopTracks: async (tag, limit = 30) => {
+        try {
+            const data = await fetchFromApiHandler(`/api/handler?target=lastfm-tag-tracks&tag=${encodeURIComponent(tag)}&limit=${limit}`);
+            return data?.tracks?.track || null;
+        } catch (error) {
+            console.error("Failed to fetch tag top tracks:", error);
             return null;
         }
     }
