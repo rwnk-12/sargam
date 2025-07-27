@@ -10,35 +10,22 @@ import { ui } from './ui.js';
 
 // --- INTERNAL HELPER FUNCTIONS ---
 
-/**
- * Converts TTML time format (MM:SS.mmm or SS.mmm) to seconds.
- * @param {string} timeString - The time string from the TTML file.
- * @returns {number} - The time in total seconds.
- */
 const _convertTtmlTimeToSeconds = (timeString) => {
     if (!timeString) return 0;
     const parts = timeString.split(':');
     let seconds = 0;
-    if (parts.length === 2) { // MM:SS.mmm format
+    if (parts.length === 2) {
         seconds += parseInt(parts[0], 10) * 60;
         seconds += parseFloat(parts[1]);
-    } else { // SS.mmm format
+    } else {
         seconds += parseFloat(parts[0]);
     }
     return seconds;
 };
 
-/**
- * --- NEW ---
- * Sanitizes a string for better API matching by removing hyphens and parenthetical text.
- * @param {string} text - The text to sanitize.
- * @returns {string} The sanitized text.
- */
 const _sanitizeForApi = (text) => {
     if (!text) return '';
-    // Replace hyphens with spaces, e.g., "Wake-Me-Up" -> "Wake Me Up"
     let sanitized = text.replace(/-/g, ' ');
-    // Remove parenthetical text, e.g., "Song (From Movie)" -> "Song"
     sanitized = sanitized.replace(/\s*\(.*\)\s*$/, '').trim();
     return sanitized;
 };
@@ -48,14 +35,8 @@ const recsEngine = {
     addPlayedSong: (songId) => {
         if (songId) state.recsEngine.playedIds.add(songId);
     },
-    /**
-     * --- UPDATED ---
-     * Builds the recommendation playlist with multi-artist fallback and title sanitization.
-     * This function now runs in the background and updates the state upon completion.
-     */
     buildRecommendationPlaylist: async (seedSong) => {
         if (!seedSong) return;
-        // Prevent re-building for the same seed in the same session
         if (state.recsEngine.seedSongId === seedSong.id) return;
         
         state.recsEngine.seedSongId = seedSong.id;
@@ -72,57 +53,44 @@ const recsEngine = {
 
         ui.showToast(`Finding songs similar to ${util.getItemName(seedSong)}...`);
         
-        // --- BUG FIX --- Use only the *first* primary artist for the API call.
-        // Last.fm's getSimilarTrack API works best with a single artist, not a comma-separated list.
         const primaryArtist = primaryArtists[0];
         const artistName = _sanitizeForApi(util.decodeHtml(primaryArtist.name));
         
-        const initialRecs = await lastFmApi.getSimilarTrack(artistName, trackName, 30);
+        // --- UPDATED LOGIC WITH FALLBACK ---
+        let recommendations = await lastFmApi.getSimilarTrack(artistName, trackName, 30);
 
-        if (!initialRecs || initialRecs.length === 0) {
-            ui.showToast("Could not find similar tracks for this song.");
+        // If no similar TRACKS are found, try finding the ARTIST's top tracks.
+        if (!recommendations || recommendations.length === 0) {
+            console.log(`No similar tracks found for "${trackName}". Falling back to top tracks for artist "${artistName}".`);
+            recommendations = await lastFmApi.getArtistTopTracks(artistName, 30);
+        }
+        // --- END UPDATED LOGIC ---
+
+        if (!recommendations || recommendations.length === 0) {
+            ui.showToast("Could not find any recommendations for this song.");
             state.currentPlaylist = [seedSong];
             state.recsEngine.isRecommendationModeActive = false;
             return;
         }
         
-        if (initialRecs.length < 12) {
-            ui.showToast("Not enough similar tracks found to build a radio station.");
-            state.currentPlaylist = [seedSong];
-            state.recsEngine.isRecommendationModeActive = false;
-            return;
-        }
-
-        const seedIndex2 = util.getUniqueRandomRecIndex();
-        const seedIndex3 = util.getUniqueRandomRecIndex();
-        const seed1 = { artist: artistName, track: trackName };
-        const seed2 = { artist: _sanitizeForApi(util.decodeHtml(initialRecs[seedIndex2].artist.name)), track: _sanitizeForApi(initialRecs[seedIndex2].name) };
-        const seed3 = { artist: _sanitizeForApi(util.decodeHtml(initialRecs[seedIndex3].artist.name)), track: _sanitizeForApi(initialRecs[seedIndex3].name) };
-        
-        const [recs1, recs2, recs3] = await Promise.all([
-            lastFmApi.getSimilarTrack(seed1.artist, seed1.track),
-            lastFmApi.getSimilarTrack(seed2.artist, seed2.track),
-            lastFmApi.getSimilarTrack(seed3.artist, seed3.track)
-        ]);
-
-        let combinedSimilarTracks = [].concat(recs1 || [], recs2 || [], recs3 || []);
-        const uniqueTracks = Array.from(new Map(combinedSimilarTracks.map(track => [`${track.name.toLowerCase()}---${track.artist.name.toLowerCase()}`, track])).values());
-        for (let i = uniqueTracks.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [uniqueTracks[i], uniqueTracks[j]] = [uniqueTracks[j], uniqueTracks[i]];
-        }
-        const recommendationPromises = uniqueTracks.map(async (track) => {
-            const query = `${track.artist.name} ${track.name}`;
+        // The rest of the logic can now proceed with the recommendations list,
+        // whether it came from similar tracks or the artist's top tracks.
+        const recommendationPromises = recommendations.map(async (track) => {
+            // The artist object from getArtistTopTracks is slightly different, so we handle both cases.
+            const searchArtist = track.artist ? track.artist.name : artistName;
+            const query = `${searchArtist} ${track.name}`;
             const searchResult = await api.searchSongs(query, 1);
             if (searchResult?.data?.results?.length > 0) {
                 const foundSong = searchResult.data.results[0];
-                if (!state.recsEngine.playedIds.has(foundSong.id)) {
+                // Don't add the original song to the recommendation list
+                if (foundSong.id !== seedSong.id && !state.recsEngine.playedIds.has(foundSong.id)) {
                     recsEngine.addPlayedSong(foundSong.id);
                     return foundSong;
                 }
             }
             return null;
         });
+        
         const foundSongs = (await Promise.all(recommendationPromises)).filter(Boolean);
         
         state.recsEngine.recommendationPlaylist = [seedSong, ...foundSongs];
