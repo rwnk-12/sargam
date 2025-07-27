@@ -1,42 +1,61 @@
 // /public/js/player.js
-// This module contains all logic for the audio player.
+// This module contains all logic for the audio player, including playback,
+// playlist management, lyrics, and the recommendation engine.
 
 import { dom } from './dom.js';
 import { state } from './state.js';
 import { util } from './utils.js';
 import { api, lrcApi, lastFmApi } from './api.js';
-import { history } from './history.js';
-
-// --- NEW --- Module-level variable to hold a reference to the UI module.
-let ui;
+import { ui } from './ui.js';
 
 // --- INTERNAL HELPER FUNCTIONS ---
+
+/**
+ * Converts TTML time format (MM:SS.mmm or SS.mmm) to seconds.
+ * @param {string} timeString - The time string from the TTML file.
+ * @returns {number} - The time in total seconds.
+ */
 const _convertTtmlTimeToSeconds = (timeString) => {
     if (!timeString) return 0;
     const parts = timeString.split(':');
     let seconds = 0;
-    if (parts.length === 2) {
+    if (parts.length === 2) { // MM:SS.mmm format
         seconds += parseInt(parts[0], 10) * 60;
         seconds += parseFloat(parts[1]);
-    } else {
+    } else { // SS.mmm format
         seconds += parseFloat(parts[0]);
     }
     return seconds;
 };
 
+/**
+ * --- NEW ---
+ * Sanitizes a string for better API matching by removing hyphens and parenthetical text.
+ * @param {string} text - The text to sanitize.
+ * @returns {string} The sanitized text.
+ */
 const _sanitizeForApi = (text) => {
     if (!text) return '';
+    // Replace hyphens with spaces, e.g., "Wake-Me-Up" -> "Wake Me Up"
     let sanitized = text.replace(/-/g, ' ');
+    // Remove parenthetical text, e.g., "Song (From Movie)" -> "Song"
     sanitized = sanitized.replace(/\s*\(.*\)\s*$/, '').trim();
     return sanitized;
 };
+
 
 const recsEngine = {
     addPlayedSong: (songId) => {
         if (songId) state.recsEngine.playedIds.add(songId);
     },
+    /**
+     * --- UPDATED ---
+     * Builds the recommendation playlist with multi-artist fallback and title sanitization.
+     * This function now runs in the background and updates the state upon completion.
+     */
     buildRecommendationPlaylist: async (seedSong) => {
-        if (!seedSong || !ui) return;
+        if (!seedSong) return;
+        // Prevent re-building for the same seed in the same session
         if (state.recsEngine.seedSongId === seedSong.id) return;
         
         state.recsEngine.seedSongId = seedSong.id;
@@ -54,12 +73,13 @@ const recsEngine = {
         ui.showToast(`Finding songs similar to ${util.getItemName(seedSong)}...`);
         
         let initialRecs = null;
+        // --- NEW --- Loop through artists and try each one until we get a result.
         for (const artist of primaryArtists) {
             const artistName = _sanitizeForApi(artist.name);
             const recs = await lastFmApi.getSimilarTrack(artistName, trackName, 30);
             if (recs && recs.length > 0) {
                 initialRecs = recs;
-                break;
+                break; // Success, we have recommendations.
             }
         }
 
@@ -108,7 +128,9 @@ const recsEngine = {
         });
         const foundSongs = (await Promise.all(recommendationPromises)).filter(Boolean);
         
+        // Silently update the playlist in the background
         state.recsEngine.recommendationPlaylist = [seedSong, ...foundSongs];
+        // Only update the main playlist if recommendation mode is still active for this seed
         if (state.recsEngine.isRecommendationModeActive && state.recsEngine.seedSongId === seedSong.id) {
             state.currentPlaylist = state.recsEngine.recommendationPlaylist;
             dom.viewPlaylistBtn.disabled = false;
@@ -118,13 +140,11 @@ const recsEngine = {
 };
 
 export const player = {
-    // --- NEW --- Initialization function to receive dependencies.
-    init: (dependencies) => {
-        ui = dependencies.ui;
-    },
-
+    /**
+     * --- UPDATED ---
+     * Now plays the song instantly and starts recommendation building in the background.
+     */
     playSong: async (songId, playContext = {}) => {
-        if (!ui) return; // Guard against calls before initialization
         try {
             const songResult = await api.getSong(songId);
             if (!songResult || !songResult.data || songResult.data.length === 0) throw new Error('Could not fetch song details.');
@@ -136,8 +156,7 @@ export const player = {
                 return;
             }
 
-            history.addSong(songData);
-
+            // --- CRITICAL CHANGE --- Play audio and update UI immediately.
             dom.audioPlayer.src = audioUrl;
             const savedPitch = localStorage.getItem('musicPlayerPitch');
             if (savedPitch) {
@@ -146,7 +165,9 @@ export const player = {
             dom.audioPlayer.play();
             player.updatePlayerUI(songData);
 
+            // --- CRITICAL CHANGE --- Start recommendation building in the background ("fire and forget").
             if (playContext.startRecommendation) {
+                // The 'await' keyword is removed here.
                 recsEngine.buildRecommendationPlaylist(songData);
             } else {
                 state.recsEngine.isRecommendationModeActive = false;
@@ -207,6 +228,7 @@ export const player = {
         const status = player.playNextSong();
         if (status === 'ended' && state.autoContinue && state.currentSongData) {
             ui.showToast(`Playlist ended. Finding more songs like ${util.getItemName(state.currentSongData)}...`);
+            // Here we must wait for the playlist to continue playback.
             await recsEngine.buildRecommendationPlaylist(state.currentSongData);
             if (state.currentPlaylist.length > 1) {
                 player.playSong(state.currentPlaylist[1].id);
@@ -218,7 +240,6 @@ export const player = {
         }
     },
     updatePlayerUI: (songData) => {
-        if (!ui) return;
         const imageUrl = util.getBestImageUrl(songData.image);
         const smallImageUrl = util.getBestImageUrl(songData.image, '150x150');
         const artistLinks = util.renderArtistLinks(util.getArtistNames(songData));
