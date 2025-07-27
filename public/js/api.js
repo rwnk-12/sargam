@@ -30,14 +30,14 @@ export const api = {
     getSong: (id) => api.fetchFromApi(`/songs/${id}`),
     getAlbum: (id) => api.fetchFromApi(`/albums?id=${id}`),
     getArtist: (id) => api.fetchFromApi(`/artists/${id}`),
+    // --- NEW --- Function to get home page data like charts and playlists.
+    getHomePageData: () => api.fetchFromApi(`/modules?language=english,hindi`),
 };
 
 export const lrcApi = {
     searchLyrics: async (songTitle, artistName) => {
         try {
-            // --- NEW --- Sanitize the song title to remove parenthetical text for better matching.
             const sanitizedTitle = songTitle.replace(/\s*\(.*\)\s*$/, '').trim();
-            
             return await fetchFromApiHandler(`/api/handler?target=lrc&song=${encodeURIComponent(sanitizedTitle)}&artist=${encodeURIComponent(artistName)}`);
         } catch (error) {
             console.error('Failed to fetch lyrics from LRC API handler:', error);
