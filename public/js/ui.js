@@ -45,7 +45,7 @@ export const ui = {
         state.lastSearchQuery = query;
         const { songData, albumData, artistData } = allData;
         const tabs = [
-            { id: 'songs', title: 'Songs', data: songData, renderer: state.songViewMode === 'list' ? ui.renderSongList : ui.renderSongGrid },
+            { id: 'songs', title: 'Songs', data: songData, renderer: state.songViewMode === 'list' ? ui.renderSongList : ui.renderGrid },
             { id: 'albums', title: 'Albums', data: albumData, renderer: ui.renderGrid },
             { id: 'artists', title: 'Artists', data: artistData, renderer: ui.renderGrid },
         ];
@@ -58,16 +58,45 @@ export const ui = {
         ui.renderContent(finalHtml);
     },
     renderGrid: (items) => {
-        if (!items) return '';
-        let html = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">`;
+        if (!items || items.length === 0) return '';
+        const itemType = items[0].type;
+
+        // Use vertical cards for songs
+        if (itemType === 'song') {
+            let songGridHtml = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">`;
+            items.forEach(item => {
+                const artistLinks = util.renderArtistLinks(util.getArtistNames(item));
+                const songJson = util.b64EncodeUnicode(JSON.stringify(item));
+                songGridHtml += `
+                    <div data-type="song" data-id="${item.id}" data-song-json="${songJson}" class="bg-music-bg-card rounded-lg p-4 transition-colors hover:bg-music-bg-hover cursor-pointer group">
+                        <div class="relative mb-3">
+                            <img src="${util.getBestImageUrl(item.image)}" alt="${util.getItemName(item)}" class="w-full rounded-md aspect-square object-cover bg-music-bg-base shadow-lg" crossorigin="anonymous">
+                            <div class="play-overlay rounded-md"><i class="fas fa-play"></i></div>
+                        </div>
+                        <h3 class="font-semibold truncate text-sm text-music-text-primary">${util.getItemName(item)}</h3>
+                        <div class="text-xs text-music-text-secondary truncate">${artistLinks}</div>
+                    </div>`;
+            });
+            return songGridHtml + `</div>`;
+        }
+
+        // Use new horizontal cards for albums and artists
+        let horizontalGridHtml = `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">`;
         items.forEach(item => {
             const artistLinks = util.renderArtistLinks(util.getArtistNames(item));
             const subtext = item.type === 'artist' ? 'Artist' : (artistLinks || item.year || '');
             const imageClass = item.type === 'artist' ? 'rounded-full' : 'rounded-md';
             const songJson = util.b64EncodeUnicode(JSON.stringify(item));
-            html += ` <div data-type="${item.type}" data-id="${item.id}" data-song-json="${songJson}" class="bg-music-bg-card border border-transparent hover:border-music-border rounded-lg p-4 transition-all cursor-pointer group"> <div class="relative mb-3"> <img src="${util.getBestImageUrl(item.image)}" alt="${util.getItemName(item)}" class="w-full ${imageClass} aspect-square object-cover bg-music-bg-base shadow-lg" crossorigin="anonymous"> ${item.type === 'song' ? '<div class="play-overlay rounded-md"><i class="fas fa-play"></i></div>' : ''} </div> <h3 class="font-semibold truncate text-sm text-music-text-primary">${util.getItemName(item)}</h3> <div class="text-xs text-music-text-secondary truncate">${subtext}</div> </div>`;
+            horizontalGridHtml += `
+                <div data-type="${item.type}" data-id="${item.id}" data-song-json="${songJson}" class="horizontal-card bg-music-bg-card hover:bg-music-bg-hover transition-colors cursor-pointer flex items-center gap-4 p-3 rounded-md">
+                    <img src="${util.getBestImageUrl(item.image, '150x150')}" alt="${util.getItemName(item)}" class="w-16 h-16 ${imageClass} object-cover flex-shrink-0 bg-music-bg-base" crossorigin="anonymous">
+                    <div class="min-w-0">
+                        <h3 class="font-semibold truncate text-base text-music-text-primary">${util.getItemName(item)}</h3>
+                        <div class="text-sm text-music-text-secondary truncate">${subtext}</div>
+                    </div>
+                </div>`;
         });
-        return html + `</div>`;
+        return horizontalGridHtml + `</div>`;
     },
     renderSongGrid: (songs) => ui.renderGrid(songs),
     renderSongList: (songs, isNumbered = false) => {
@@ -77,7 +106,19 @@ export const ui = {
             const durationText = util.formatTime(song.duration);
             const artistLinks = util.renderArtistLinks(util.getArtistNames(song));
             const songJson = util.b64EncodeUnicode(JSON.stringify(song));
-            html += ` <div class="song-row p-2.5 rounded-md transition-colors flex items-center gap-4 group relative" data-type="song" data-id="${song.id}" data-song-json="${songJson}"> <div class="relative flex-shrink-0 w-11 h-11 cursor-pointer"> <span class="absolute inset-0 flex items-center justify-center text-music-text-secondary group-hover:hidden font-medium text-sm">${isNumbered ? (index + 1) : ''}</span> <div class="absolute inset-0 hidden group-hover:flex items-center justify-center text-white bg-black/50 rounded-md"><i class="fas fa-play"></i></div> <img src="${util.getBestImageUrl(song.image, '150x150')}" alt="${util.getItemName(song)}" class="w-11 h-11 rounded-md object-cover bg-music-bg-base shadow-md" crossorigin="anonymous"> </div> <div class="flex-1 min-w-0"> <h3 class="font-medium truncate text-sm text-music-text-primary">${util.getItemName(song)}</h3> <div class="text-music-text-secondary text-xs truncate">${artistLinks}</div> </div> <span class="text-music-text-secondary text-xs w-10 text-right flex-shrink-0 pr-2">${durationText}</span> </div>`;
+            html += `
+                <div class="song-row p-2.5 rounded-md transition-colors flex items-center gap-4 group relative" data-type="song" data-id="${song.id}" data-song-json="${songJson}">
+                    <div class="relative flex-shrink-0 w-11 h-11 cursor-pointer">
+                        <span class="absolute inset-0 flex items-center justify-center text-music-text-secondary group-hover:hidden font-medium text-sm">${isNumbered ? (index + 1) : ''}</span>
+                        <div class="absolute inset-0 hidden group-hover:flex items-center justify-center text-white bg-black/50 rounded-md"><i class="fas fa-play"></i></div>
+                        <img src="${util.getBestImageUrl(song.image, '150x150')}" alt="${util.getItemName(song)}" class="w-11 h-11 rounded-md object-cover bg-music-bg-base shadow-md" crossorigin="anonymous">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-medium truncate text-sm text-music-text-primary">${util.getItemName(song)}</h3>
+                        <div class="text-music-text-secondary text-xs truncate">${artistLinks}</div>
+                    </div>
+                    <span class="text-music-text-secondary text-xs w-10 text-right flex-shrink-0 pr-2">${durationText}</span>
+                </div>`;
         });
         return html + `</div>`;
     },
