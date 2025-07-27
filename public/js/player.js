@@ -1,5 +1,5 @@
 /* /public/css/styles.css */
-:root {
+root {
     --player-height: 72px;
     --bg-primary: #09090b;
     --bg-elevated: #1c1c1e;
