@@ -1,19 +1,21 @@
 /* /public/css/styles.css */
 :root {
     --player-height: 72px;
-    --bg-primary: #09090b;
-    --bg-elevated: #1c1c1e;
-    --bg-card: #18181b;
-    --bg-hover: #27272a;
-    --border-color: #27272a;
+    /* --- NEW COLOR PALETTE --- */
+    --bg-primary: #1e1e1e;
+    --bg-elevated: #252525;
+    --bg-card: #252525;
+    --bg-hover: #2c2c2c;
+    --border-color: #2c2c2c;
+    --skeleton-bg: #252525;
+    --skeleton-highlight: #3a3a3a;
+    /* --- END NEW COLORS --- */
     --text-primary: #fafafa;
     --text-secondary: #a1a1aa;
     --accent-color: #f5596d;
     --accent-hover: #f5596d;
     --ring-color: #f5596d;
     --accent-gradient: linear-gradient(to right, #f5596d, #f5596d);
-    --skeleton-bg: #202020;
-    --skeleton-highlight: #333333;
     --lyrics-text-color: rgba(255, 255, 255, 0.7);
     --lyrics-active-color: var(--text-primary);
     --title-translate-x: 0px;
@@ -111,7 +113,7 @@ body.lyrics-view-active #lyrics-view { display: flex; flex-direction: column; }
 .song-row.playing { background-color: rgba(245, 89, 109, 0.1); border-left: 3px solid var(--accent-color); padding-left: calc(0.625rem - 3px); }
 .song-row.playing h3 { color: var(--accent-color); font-weight: 600; }
 .artist-hero { background-size: cover; background-position: center; position: relative; }
-.artist-hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(9,9,11,1) 10%, rgba(9,9,11,0.6) 50%, rgba(9,9,11,1) 90%); }
+.artist-hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, var(--bg-primary) 10%, transparent 50%, var(--bg-primary) 90%); }
 .tab-button { padding: 0.75rem 1rem; border-bottom: 2px solid transparent; transition: all 0.2s ease-in-out; font-weight: 500; }
 .tab-button.active { color: var(--text-primary); border-bottom-color: var(--accent-color); }
 .tab-panel { display: none; }
